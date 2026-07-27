@@ -178,6 +178,53 @@ export async function getChallengeHint({ problem, code, language, hintLevel, run
   return textOf(response);
 }
 
+// ---------- 2b. conversation ----------
+// Free-form back-and-forth. Distinct from the hint ladder: questions are free
+// and unlimited, because a learner asking "what does % even do" shouldn't have
+// to spend a hint. The guardrail is the same — Sage won't write the answer.
+
+const CHAT_SYSTEM = `You are Sage, an in-editor coding tutor on Ramp, talking with a learner while they work on a task.
+
+You can see the task, their current code, and what it printed. Answer whatever they ask.
+
+Rules:
+- Conversational and brief — 1-4 sentences typically. This is a small side panel, not an essay.
+- Answer the question they actually asked. If they ask what an operator does, just explain it. If they ask why their code misbehaves, explain the cause.
+- NEVER write their solution for them, and never paste code that would complete the task. Short illustrative fragments on *unrelated* examples are fine — e.g. explain \`%\` with \`7 % 2\`, not with their loop.
+- If they're asking you to just do it, say no warmly and give them the next concrete step instead.
+- If their question is vague, answer the most likely reading rather than interrogating them.
+- Assume they're a beginner unless their code says otherwise. Skip jargon or define it in passing.
+- Plain prose, light markdown (backticks) only. No headers, no bullet-point walls.`;
+
+export async function chatWithSage({ context, title, instructions, code, language, expected, lastOutput, history, message }) {
+  const brief = [
+    `## What they're working on: ${context === 'daily' ? 'daily challenge' : 'training drill'} — ${title}`,
+    (instructions || '').slice(0, 1200),
+    expected ? `Expected output:\n${String(expected).slice(0, 400)}` : '',
+    `Language: ${LANG_LABEL[language] || language}`,
+    `## Their code right now:\n\`\`\`\n${(code || '').slice(0, 4000)}\n\`\`\``,
+    lastOutput ? `## What it last printed:\n${String(lastOutput).slice(0, 600)}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+
+  // The task brief is a stable prefix; the conversation grows after it.
+  const messages = [
+    { role: 'user', content: brief },
+    { role: 'assistant', content: 'Got it — I can see the task and their code. Ready for their question.' },
+    ...(history || []).slice(-8).map((m) => ({ role: m.role, content: m.content })),
+    { role: 'user', content: message },
+  ];
+
+  const response = await getClient().messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    system: [{ type: 'text', text: CHAT_SYSTEM, cache_control: { type: 'ephemeral' } }],
+    messages,
+  });
+  return textOf(response);
+}
+
 // ---------- 3. live monitoring ----------
 // Called while the learner is typing, when client-side heuristics suspect
 // they're stuck. Sage decides whether to actually speak up — most of the time

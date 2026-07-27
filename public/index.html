@@ -210,8 +210,15 @@
   </header>
   <div id="sage-messages" class="sage-messages"></div>
   <div class="sage-foot">
-    <input id="sage-question" type="text" placeholder="Tell Sage what's confusing you (optional)…" />
-    <button id="sage-hint-btn" class="btn btn-sage btn-block">Give me a hint <span id="sage-cost" class="cost"></span></button>
+    <form id="sage-chat-form" class="sage-ask">
+      <input id="sage-question" type="text" autocomplete="off"
+             placeholder="Ask Sage anything…" />
+      <button type="submit" id="sage-send" class="send-btn" title="Send (Enter)">↑</button>
+    </form>
+    <div class="sage-foot-row">
+      <span class="free-note">Questions are free</span>
+      <button id="sage-hint-btn" class="btn btn-sage btn-sm">Give me a hint <span id="sage-cost" class="cost"></span></button>
+    </div>
   </div>
 </aside>
 

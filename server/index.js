@@ -13,7 +13,14 @@ import {
   publicDrill,
   checkDrill,
 } from './drills.js';
-import { aiAvailable, getDrillHint, getChallengeHint, getDrillReview, observeCode } from './ai.js';
+import {
+  aiAvailable,
+  getDrillHint,
+  getChallengeHint,
+  getDrillReview,
+  observeCode,
+  chatWithSage,
+} from './ai.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const problems = JSON.parse(
@@ -637,6 +644,89 @@ app.post('/api/assistant/observe', requireAuth, async (req, res) => {
     read: verdict.read || '',
     source: verdict.offline ? 'heuristic' : 'sage',
   });
+});
+
+// ── conversation ──
+// Free and unlimited. Asking a question is not the same as spending a hint —
+// the hint ladder is the thing that costs points.
+
+const chatState = new Map(); // userKey -> { key: string, history: [{role, content}] }
+const CHAT_TURN_LIMIT = 40;
+
+app.post('/api/assistant/ask', requireAuth, async (req, res) => {
+  const user = req.user;
+  if (!user.assistantEnabled) return res.status(403).json({ error: 'Sage is switched off' });
+
+  const message = String(req.body?.message || '').trim();
+  if (!message) return res.status(400).json({ error: 'Say something first' });
+  if (message.length > 1500) return res.status(400).json({ error: 'That message is too long' });
+
+  if (!aiAvailable()) {
+    return res.json({
+      reply:
+        "I can't read messages without an API key set on the server — I'm running on the built-in hint ladder instead. Hit **Give me a hint** and I'll still get you moving.",
+      source: 'offline',
+    });
+  }
+
+  const language = pickLanguage(user, req.body?.language);
+  const daily = req.body?.context === 'daily';
+  const { code, lastOutput } = req.body || {};
+
+  let target;
+  try {
+    if (daily) {
+      if (!graduated(user)) return res.status(403).json({ error: 'Finish training first' });
+      const problem = todaysProblem();
+      target = { title: problem.title, instructions: problem.statement, expected: null, key: `daily:${problem.id}` };
+    } else {
+      const index = user.training.completed.length;
+      const drill = await getDrill({
+        userKey: req.userKey,
+        index,
+        language,
+        history: user.training.completed.map((c) => ({ title: c.title, concept: c.concept })),
+        recentCode: user.training.completed[index - 1]?.code,
+      });
+      target = {
+        title: drill.title,
+        instructions: drill.instructions,
+        expected: drill.expectedOutput,
+        key: `drill:${drill.id}`,
+      };
+    }
+  } catch {
+    return res.status(500).json({ error: "Couldn't load the task Sage is helping with" });
+  }
+
+  // Conversation resets when you move to a new drill or problem.
+  let state = chatState.get(req.userKey);
+  if (!state || state.key !== target.key) {
+    state = { key: target.key, history: [] };
+    chatState.set(req.userKey, state);
+  }
+  if (state.history.length >= CHAT_TURN_LIMIT * 2) {
+    return res.status(429).json({ error: "That's a lot of questions for one task — try a hint instead." });
+  }
+
+  let reply;
+  try {
+    reply = await chatWithSage({
+      context: daily ? 'daily' : 'drill',
+      ...target,
+      code,
+      language,
+      lastOutput,
+      history: state.history,
+      message,
+    });
+  } catch (err) {
+    console.warn('Sage chat failed:', err.message);
+    return res.status(502).json({ error: "Sage couldn't answer that one — try again." });
+  }
+
+  state.history.push({ role: 'user', content: message }, { role: 'assistant', content: reply });
+  res.json({ reply, source: 'sage' });
 });
 
 app.post('/api/assistant/toggle', requireAuth, (req, res) => {

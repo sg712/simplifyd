@@ -78,7 +78,13 @@ The client tracks your keystrokes locally and looks for stuck-patterns rather th
 
 Only when one of these trips does the client send your code to the server, where Sage looks at it and makes its own call about whether interrupting is actually useful. Most of the time the right answer is silence, and it's prompted to prefer that — a wrong interruption is worse than none. When it does speak, it points at the specific thing it sees ("your total resets each loop"), never generic encouragement, and never the answer.
 
-**Proactive remarks are free.** That's Sage noticing, not you spending something. Asking for a full hint is the part that costs: three escalating levels — intuition, technique, concrete walkthrough — each trimming 15% off that item's points. `⌘/Ctrl+K` opens the panel; the orb is clickable any time.
+### Talking to it
+
+The panel is a real conversation — type a question, hit Enter. Sage sees the task, your current code, and what it last printed, so "why is my loop only running once?" gets an answer about *your* loop. **Questions are free and unlimited**, because a beginner asking what `%` does shouldn't have to spend anything. It won't write your solution — ask it to and it'll warmly refuse and give you the next concrete step instead.
+
+Three things cost nothing: Sage noticing you're stuck, asking it questions, and its note on how you solved a drill. The one thing that costs is the **hint ladder** — three escalating levels (intuition → technique → concrete walkthrough), each trimming 15% off that item's points.
+
+`⌘/Ctrl+K` opens the panel; the orb is clickable any time.
 
 Rate-limited to one remark per 25 seconds, with recent remarks fed back into the prompt so it doesn't repeat itself. Without an API key the watcher still runs, but it can only act on the unambiguous signals and says so plainly rather than faking insight.
 
