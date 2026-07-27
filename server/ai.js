@@ -9,12 +9,90 @@ import Anthropic from '@anthropic-ai/sdk';
 const MODEL = 'claude-opus-5';
 
 let client = null;
+
+// Live status, decided by an actual API call at boot rather than by guessing
+// from the presence of an env var. A key that exists but is rejected is a very
+// different problem from no key at all, and the UI should be able to say which.
+export const status = {
+  configured: false,
+  live: false,
+  checked: false,
+  reason: 'No API key set',
+  detail: null,
+};
+
 export function aiAvailable() {
-  return Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+  return status.live;
 }
+
 function getClient() {
   client ??= new Anthropic();
   return client;
+}
+
+// Every model call goes through here so a key that gets revoked or rate-limited
+// mid-session updates the status the UI shows, instead of silently degrading
+// into the offline fallbacks with no explanation.
+async function createMessage(params) {
+  try {
+    return await getClient().messages.create(params);
+  } catch (err) {
+    const code = err?.status;
+    if (code === 401 || code === 403) {
+      status.live = false;
+      status.reason = code === 401 ? 'API key rejected' : 'API key lacks access';
+      status.detail = `The API returned ${code} during a request.`;
+    }
+    throw err;
+  }
+}
+
+export async function checkCredentials() {
+  status.configured = Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+  status.checked = true;
+
+  if (!status.configured) {
+    status.live = false;
+    status.reason = 'No API key set';
+    status.detail =
+      'Put ANTHROPIC_API_KEY in a .env file next to package.json (see .env.example), or export it before starting.';
+    return status;
+  }
+
+  try {
+    // Smallest possible real request — proves the key is accepted and the
+    // model id is reachable, for a rounding error of a cent.
+    await createMessage({
+      model: MODEL,
+      max_tokens: 1,
+      messages: [{ role: 'user', content: 'ok' }],
+    });
+    status.live = true;
+    status.reason = 'live';
+    status.detail = null;
+  } catch (err) {
+    status.live = false;
+    const code = err?.status;
+    if (code === 401) {
+      status.reason = 'API key rejected';
+      status.detail = 'The key was sent but the API returned 401. Check for a typo or a revoked key.';
+    } else if (code === 403) {
+      status.reason = 'API key lacks access';
+      status.detail = `403 from the API — the key may not have access to ${MODEL}.`;
+    } else if (code === 404) {
+      status.reason = 'Model not found';
+      status.detail = `The API doesn't recognise "${MODEL}" for this key.`;
+    } else if (code === 429) {
+      // Rate-limited on a 1-token probe still means the key is valid.
+      status.live = true;
+      status.reason = 'live (rate-limited at startup)';
+      status.detail = null;
+    } else {
+      status.reason = 'Could not reach the API';
+      status.detail = `${err?.name || 'Error'}: ${String(err?.message || err).slice(0, 200)}`;
+    }
+  }
+  return status;
 }
 
 function textOf(response) {
@@ -61,13 +139,14 @@ const DRILL_SCHEMA = {
       description:
         'A complete, correct program that produces the expected output. This is run to derive the expected output — it must be exactly right.',
     },
+    // No minItems/maxItems here: array-length constraints aren't part of the
+    // supported structured-output schema subset. The count is stated in the
+    // description and normalised below.
     hints: {
       type: 'array',
       items: { type: 'string' },
-      minItems: 3,
-      maxItems: 3,
       description:
-        'Three escalating hints: (1) nudge the intuition, (2) name the technique, (3) near-explicit walkthrough that still leaves the typing to them.',
+        'Exactly three escalating hints: (1) nudge the intuition, (2) name the technique, (3) near-explicit walkthrough that still leaves the typing to them.',
     },
     feedbackOnPrevious: {
       type: 'string',
@@ -108,7 +187,7 @@ export async function generateDrill({ language, history, recentCode, targetCount
     'Author the next drill.',
   ].join('\n\n');
 
-  const response = await getClient().messages.create({
+  const response = await createMessage({
     model: MODEL,
     max_tokens: 4096,
     system: [{ type: 'text', text: DRILL_SYSTEM, cache_control: { type: 'ephemeral' } }],
@@ -116,7 +195,25 @@ export async function generateDrill({ language, history, recentCode, targetCount
     messages: [{ role: 'user', content: prompt }],
   });
 
-  return JSON.parse(textOf(response));
+  const drill = JSON.parse(textOf(response));
+
+  // Normalise rather than trust: a schema-valid response can still be shaped
+  // awkwardly, and the UI indexes hints[0..2] directly.
+  const required = ['title', 'concept', 'instructions', 'starterCode', 'referenceSolution'];
+  for (const field of required) {
+    if (typeof drill[field] !== 'string' || !drill[field].trim()) {
+      throw new Error(`drill missing "${field}"`);
+    }
+  }
+  const hints = Array.isArray(drill.hints) ? drill.hints.filter((h) => typeof h === 'string' && h.trim()) : [];
+  while (hints.length < 3) {
+    hints.push('Re-read the expected output carefully — the format has to match exactly, character for character.');
+  }
+  drill.hints = hints.slice(0, 3);
+  drill.why = typeof drill.why === 'string' ? drill.why : '';
+  drill.feedbackOnPrevious = typeof drill.feedbackOnPrevious === 'string' ? drill.feedbackOnPrevious : '';
+
+  return drill;
 }
 
 // ---------- 2. hints ----------
@@ -147,7 +244,7 @@ export async function getDrillHint({ drill, code, language, hintLevel, output, e
     parts.push(`## What their code actually printed:\n${String(output).slice(0, 1000) || '(nothing)'}`);
   }
 
-  const response = await getClient().messages.create({
+  const response = await createMessage({
     model: MODEL,
     max_tokens: 1024,
     system: [{ type: 'text', text: HINT_SYSTEM, cache_control: { type: 'ephemeral' } }],
@@ -169,7 +266,7 @@ export async function getChallengeHint({ problem, code, language, hintLevel, run
   if (runSummary) parts.push(`## Latest run results:\n${runSummary.slice(0, 2000)}`);
   if (userMessage) parts.push(`## They say:\n${userMessage.slice(0, 1000)}`);
 
-  const response = await getClient().messages.create({
+  const response = await createMessage({
     model: MODEL,
     max_tokens: 1024,
     system: [{ type: 'text', text: HINT_SYSTEM, cache_control: { type: 'ephemeral' } }],
@@ -216,7 +313,7 @@ export async function chatWithSage({ context, title, instructions, code, languag
     { role: 'user', content: message },
   ];
 
-  const response = await getClient().messages.create({
+  const response = await createMessage({
     model: MODEL,
     max_tokens: 1024,
     system: [{ type: 'text', text: CHAT_SYSTEM, cache_control: { type: 'ephemeral' } }],
@@ -292,7 +389,7 @@ export async function observeCode({ context, title, instructions, code, starterC
     'Decide: speak up, or stay quiet?',
   ].filter(Boolean);
 
-  const response = await getClient().messages.create({
+  const response = await createMessage({
     model: MODEL,
     max_tokens: 800,
     output_config: { format: { type: 'json_schema', schema: OBSERVE_SCHEMA }, effort: 'low' },
@@ -306,7 +403,7 @@ export async function observeCode({ context, title, instructions, code, starterC
 // ---------- 4. review note after a passed drill ----------
 
 export async function getDrillReview({ drill, code, language }) {
-  const response = await getClient().messages.create({
+  const response = await createMessage({
     model: MODEL,
     max_tokens: 512,
     system: [

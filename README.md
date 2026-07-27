@@ -31,14 +31,43 @@ npm start          # → http://localhost:3000
 
 Node.js 20+. No database — state lands in `data/db.json`.
 
-**To turn Sage on** (AI-authored drills, hints that read your actual code and error):
+### Turning Sage on
+
+Sage needs an Anthropic API key. Get one at [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys), then:
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+cp .env.example .env
+# open .env and paste your key after ANTHROPIC_API_KEY=
 npm start
 ```
 
-Without a key everything still works — Sage falls back to a hand-written 10-drill curriculum and static hint ladders. The UI tells you which mode you're in rather than pretending.
+`.env` is gitignored, and it beats `export` because it survives closing the terminal. A real environment variable still wins if you'd rather set one.
+
+**Ramp verifies the key at startup with an actual one-token request** — "the variable is set" and "the key works" are different things, and only one of them is worth printing:
+
+```
+  Languages   JavaScript, Python 3, Java, C++
+  Sage        ✓ live — drills are AI-authored, hints read your code
+```
+
+If something's off it tells you exactly what, rather than quietly degrading:
+
+```
+  Sage        ✗ API key rejected — running the built-in curriculum instead
+              The key was sent but the API returned 401. Check for a typo or a revoked key.
+```
+
+It distinguishes no key, a rejected key (401), a key without access to the model (403), an unknown model (404), and an unreachable API. A key that gets revoked mid-session flips the status too, so the app never silently pretends. The same reason is shown inside the Sage panel, so you can tell from the UI whether you're getting real answers or fallbacks.
+
+**Without a key everything still runs.** Sage falls back to a hand-written 10-drill curriculum and static hint ladders, the stuck-detector still catches the unambiguous patterns, and it says so plainly instead of pretending.
+
+| | No key | With key |
+|---|---|---|
+| Drills | Fixed 10-rung curriculum | Written for you, adapting to your history and your code |
+| Stuck detection | Obvious patterns only | Reads your code and names the specific thing you're circling |
+| Chat | Unavailable, and says so | Answers questions about your actual code |
+| Hints | Fixed 3-tier ladder per task | Written against your specific bug |
+| Daily challenge | Fully working | Fully working |
 
 ## Languages
 

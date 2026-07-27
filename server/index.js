@@ -1,3 +1,4 @@
+import './env.js'; // must be first — loads .env before anything reads process.env
 import express from 'express';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
@@ -20,6 +21,8 @@ import {
   getDrillReview,
   observeCode,
   chatWithSage,
+  checkCredentials,
+  status as aiStatus,
 } from './ai.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -171,13 +174,25 @@ app.get('/api/me', requireAuth, (req, res) => {
   res.json({
     user: publicUser(req.user),
     aiAvailable: aiAvailable(),
+    sage: publicAiStatus(),
     languages: availableLanguages(),
   });
 });
 
 app.get('/api/config', (req, res) => {
-  res.json({ languages: availableLanguages(), aiAvailable: aiAvailable() });
+  res.json({ languages: availableLanguages(), aiAvailable: aiAvailable(), sage: publicAiStatus() });
 });
+
+// What the client is told about Sage's health. No secrets — just enough to
+// explain itself when it's running in fallback mode.
+function publicAiStatus() {
+  return {
+    live: aiStatus.live,
+    configured: aiStatus.configured,
+    reason: aiStatus.reason,
+    detail: aiStatus.detail,
+  };
+}
 
 app.post('/api/language', requireAuth, (req, res) => {
   const lang = pickLanguage(req.user, req.body?.language);
@@ -761,15 +776,25 @@ app.get('/api/leaderboard', (req, res) => {
 // ---------- boot ----------
 
 const PORT = process.env.PORT || 3000;
-detectLanguages().then((langs) => {
+
+// Probe toolchains and the API key together, then report both honestly. The
+// credential check is a real one-token request — "the env var is set" is not
+// the same as "the key works", and only one of those is worth printing.
+Promise.all([detectLanguages(), checkCredentials()]).then(([langs, sage]) => {
   app.listen(PORT, () => {
     const ready = langs.filter((l) => l.available).map((l) => l.label);
     const missing = langs.filter((l) => !l.available).map((l) => l.label);
-    console.log(`\n  ⬡ Ramp is running → http://localhost:${PORT}\n`);
-    console.log(`  Languages ready:  ${ready.join(', ') || 'none!'}`);
-    if (missing.length) console.log(`  Not installed:    ${missing.join(', ')}`);
-    console.log(
-      `  Sage:             ${aiAvailable() ? 'live (Claude API) — drills are AI-authored' : 'offline — using the built-in curriculum (set ANTHROPIC_API_KEY for AI drills)'}\n`
-    );
+
+    console.log(`\n  ⬡ Ramp → http://localhost:${PORT}\n`);
+    console.log(`  Languages   ${ready.join(', ') || 'NONE — install node, python3, javac or g++'}`);
+    if (missing.length) console.log(`  Missing     ${missing.join(', ')}`);
+
+    if (sage.live) {
+      console.log(`  Sage        ✓ ${sage.reason} — drills are AI-authored, hints read your code\n`);
+    } else {
+      console.log(`  Sage        ✗ ${sage.reason} — running the built-in curriculum instead`);
+      if (sage.detail) console.log(`              ${sage.detail}`);
+      console.log('');
+    }
   });
 });
