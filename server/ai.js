@@ -6,7 +6,13 @@
 // curriculum and hint ladders when no API credentials are present.
 import Anthropic from '@anthropic-ai/sdk';
 
-const MODEL = 'claude-opus-5';
+// Sage's model. Opus is the default because it writes the best drills and
+// gives the sharpest reads on stuck code — but this is your API bill, so it's
+// yours to choose. Set RAMP_MODEL in .env to trade quality for cost:
+//   claude-opus-5    $5 / $25 per MTok  (default)
+//   claude-sonnet-5  $3 / $15
+//   claude-haiku-4-5 $1 / $5            (~5x cheaper than Opus)
+export const MODEL = process.env.RAMP_MODEL || 'claude-opus-5';
 
 let client = null;
 

@@ -59,6 +59,22 @@ If something's off it tells you exactly what, rather than quietly degrading:
 
 It distinguishes no key, a rejected key (401), a key without access to the model (403), an unknown model (404), and an unreachable API. A key that gets revoked mid-session flips the status too, so the app never silently pretends. The same reason is shown inside the Sage panel, so you can tell from the UI whether you're getting real answers or fallbacks.
 
+> **A Claude Pro or Max subscription does not include API credits.** They're separate products — a subscription covers the Claude apps and Claude Code, while the API bills separately from prepaid credit in the [Console](https://console.anthropic.com). See [Anthropic's help article](https://support.claude.com/en/articles/9876003-i-have-a-paid-claude-subscription-pro-max-team-or-enterprise-plans-why-do-i-have-to-pay-separately-to-use-the-claude-api-and-console) on exactly this.
+
+### What it costs
+
+Sage is called for drill authoring, stuck-detection, chat and hints — all short requests. Rough order of magnitude for one full 10-rung training run with a normal amount of chatting:
+
+| Model | `RAMP_MODEL` | Per MTok | Full training run |
+|---|---|---|---|
+| Opus (default) | `claude-opus-5` | $5 / $25 | well under a dollar |
+| Sonnet | `claude-sonnet-5` | $3 / $15 | roughly half that |
+| Haiku | `claude-haiku-4-5` | $1 / $5 | pennies |
+
+Opus is the default because it writes the best drills and gives the sharpest read on stuck code, but it's your bill — set `RAMP_MODEL` in `.env` to trade quality for cost. The smallest credit top-up goes a long way.
+
+Costs are bounded by design rather than left open-ended: monitoring is rate-limited to one look per 25 seconds, hints are capped at three per task, and verified drills are cached so refreshing the page doesn't re-bill.
+
 **Without a key everything still runs.** Sage falls back to a hand-written 10-drill curriculum and static hint ladders, the stuck-detector still catches the unambiguous patterns, and it says so plainly instead of pretending.
 
 | | No key | With key |

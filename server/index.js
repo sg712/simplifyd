@@ -23,6 +23,7 @@ import {
   chatWithSage,
   checkCredentials,
   status as aiStatus,
+  MODEL as SAGE_MODEL,
 } from './ai.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -790,7 +791,8 @@ Promise.all([detectLanguages(), checkCredentials()]).then(([langs, sage]) => {
     if (missing.length) console.log(`  Missing     ${missing.join(', ')}`);
 
     if (sage.live) {
-      console.log(`  Sage        ✓ ${sage.reason} — drills are AI-authored, hints read your code\n`);
+      console.log(`  Sage        ✓ ${sage.reason} — ${SAGE_MODEL}`);
+      console.log(`              drills are AI-authored, hints read your code\n`);
     } else {
       console.log(`  Sage        ✗ ${sage.reason} — running the built-in curriculum instead`);
       if (sage.detail) console.log(`              ${sage.detail}`);
