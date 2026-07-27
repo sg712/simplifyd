@@ -6,23 +6,120 @@
     "points": 100,
     "functionName": "twoSum",
     "statement": "Given an array of integers `nums` and an integer `target`, return the **indices** of the two numbers that add up to `target`.\n\nYou may assume that each input has exactly one solution, and you may not use the same element twice. Return the answer with the smaller index first.",
-    "constraints": ["2 <= nums.length <= 10^4", "-10^9 <= nums[i] <= 10^9", "Exactly one valid answer exists"],
-    "starterCode": "/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]} indices of the two numbers\n */\nfunction twoSum(nums, target) {\n  // your code here\n}\n",
+    "constraints": [
+      "2 <= nums.length <= 10^4",
+      "-10^9 <= nums[i] <= 10^9",
+      "Exactly one valid answer exists"
+    ],
     "examples": [
-      { "args": [[2, 7, 11, 15], 9], "expected": [0, 1] },
-      { "args": [[3, 2, 4], 6], "expected": [1, 2] },
-      { "args": [[3, 3], 6], "expected": [0, 1] }
+      {
+        "args": [
+          [
+            2,
+            7,
+            11,
+            15
+          ],
+          9
+        ],
+        "expected": [
+          0,
+          1
+        ]
+      },
+      {
+        "args": [
+          [
+            3,
+            2,
+            4
+          ],
+          6
+        ],
+        "expected": [
+          1,
+          2
+        ]
+      },
+      {
+        "args": [
+          [
+            3,
+            3
+          ],
+          6
+        ],
+        "expected": [
+          0,
+          1
+        ]
+      }
     ],
     "hiddenTests": [
-      { "args": [[-1, -2, -3, -4, -5], -8], "expected": [2, 4] },
-      { "args": [[0, 4, 3, 0], 0], "expected": [0, 3] },
-      { "args": [[1, 5, 9, 13, 7], 20], "expected": [3, 4] }
+      {
+        "args": [
+          [
+            -1,
+            -2,
+            -3,
+            -4,
+            -5
+          ],
+          -8
+        ],
+        "expected": [
+          2,
+          4
+        ]
+      },
+      {
+        "args": [
+          [
+            0,
+            4,
+            3,
+            0
+          ],
+          0
+        ],
+        "expected": [
+          0,
+          3
+        ]
+      },
+      {
+        "args": [
+          [
+            1,
+            5,
+            9,
+            13,
+            7
+          ],
+          20
+        ],
+        "expected": [
+          3,
+          4
+        ]
+      }
     ],
     "hints": [
       "Brute force works: check every pair. But can you do it in one pass?",
       "As you scan the array, ask: \"have I already seen the number that would complete this pair?\" What data structure answers that in O(1)?",
       "Keep a Map from value → index. For each nums[i], look up target - nums[i] in the map before inserting nums[i]."
-    ]
+    ],
+    "signature": {
+      "args": [
+        "int[]",
+        "int"
+      ],
+      "ret": "int[]",
+      "params": [
+        "nums",
+        "target"
+      ]
+    }
   },
   {
     "id": "valid-parentheses",
@@ -31,24 +128,70 @@
     "points": 100,
     "functionName": "isValid",
     "statement": "Given a string `s` containing just the characters `(`, `)`, `{`, `}`, `[` and `]`, determine if the input string is **valid**.\n\nA string is valid if:\n1. Open brackets are closed by the same type of bracket.\n2. Open brackets are closed in the correct order.\n3. Every close bracket has a corresponding open bracket.",
-    "constraints": ["1 <= s.length <= 10^4", "s consists only of ()[]{}"],
-    "starterCode": "/**\n * @param {string} s\n * @return {boolean}\n */\nfunction isValid(s) {\n  // your code here\n}\n",
+    "constraints": [
+      "1 <= s.length <= 10^4",
+      "s consists only of ()[]{}"
+    ],
     "examples": [
-      { "args": ["()"], "expected": true },
-      { "args": ["()[]{}"], "expected": true },
-      { "args": ["(]"], "expected": false }
+      {
+        "args": [
+          "()"
+        ],
+        "expected": true
+      },
+      {
+        "args": [
+          "()[]{}"
+        ],
+        "expected": true
+      },
+      {
+        "args": [
+          "(]"
+        ],
+        "expected": false
+      }
     ],
     "hiddenTests": [
-      { "args": ["([)]"], "expected": false },
-      { "args": ["{[]}"], "expected": true },
-      { "args": ["("], "expected": false },
-      { "args": ["]"], "expected": false }
+      {
+        "args": [
+          "([)]"
+        ],
+        "expected": false
+      },
+      {
+        "args": [
+          "{[]}"
+        ],
+        "expected": true
+      },
+      {
+        "args": [
+          "("
+        ],
+        "expected": false
+      },
+      {
+        "args": [
+          "]"
+        ],
+        "expected": false
+      }
     ],
     "hints": [
       "Think about the *most recently opened* bracket — it has to be closed first. What data structure is 'last in, first out'?",
       "Push opening brackets onto a stack. When you hit a closing bracket, what should be on top of the stack?",
       "Pop on every closer and compare types; the string is valid only if every pop matches and the stack ends empty."
-    ]
+    ],
+    "signature": {
+      "args": [
+        "string"
+      ],
+      "ret": "bool",
+      "params": [
+        "s"
+      ]
+    }
   },
   {
     "id": "max-subarray",
@@ -57,23 +200,93 @@
     "points": 200,
     "functionName": "maxSubArray",
     "statement": "Given an integer array `nums`, find the contiguous subarray with the largest sum, and return **its sum**.",
-    "constraints": ["1 <= nums.length <= 10^5", "-10^4 <= nums[i] <= 10^4"],
-    "starterCode": "/**\n * @param {number[]} nums\n * @return {number}\n */\nfunction maxSubArray(nums) {\n  // your code here\n}\n",
+    "constraints": [
+      "1 <= nums.length <= 10^5",
+      "-10^4 <= nums[i] <= 10^4"
+    ],
     "examples": [
-      { "args": [[-2, 1, -3, 4, -1, 2, 1, -5, 4]], "expected": 6 },
-      { "args": [[1]], "expected": 1 },
-      { "args": [[5, 4, -1, 7, 8]], "expected": 23 }
+      {
+        "args": [
+          [
+            -2,
+            1,
+            -3,
+            4,
+            -1,
+            2,
+            1,
+            -5,
+            4
+          ]
+        ],
+        "expected": 6
+      },
+      {
+        "args": [
+          [
+            1
+          ]
+        ],
+        "expected": 1
+      },
+      {
+        "args": [
+          [
+            5,
+            4,
+            -1,
+            7,
+            8
+          ]
+        ],
+        "expected": 23
+      }
     ],
     "hiddenTests": [
-      { "args": [[-1]], "expected": -1 },
-      { "args": [[-2, -1]], "expected": -1 },
-      { "args": [[8, -19, 5, -4, 20]], "expected": 21 }
+      {
+        "args": [
+          [
+            -1
+          ]
+        ],
+        "expected": -1
+      },
+      {
+        "args": [
+          [
+            -2,
+            -1
+          ]
+        ],
+        "expected": -1
+      },
+      {
+        "args": [
+          [
+            8,
+            -19,
+            5,
+            -4,
+            20
+          ]
+        ],
+        "expected": 21
+      }
     ],
     "hints": [
       "For each position, there are only two choices: extend the previous subarray, or start fresh here. When is starting fresh better?",
       "Track a running sum. If it ever drops below zero, it can only hurt whatever comes next — reset it.",
       "This is Kadane's algorithm: current = max(nums[i], current + nums[i]); best = max(best, current). Watch out for all-negative arrays."
-    ]
+    ],
+    "signature": {
+      "args": [
+        "int[]"
+      ],
+      "ret": "int",
+      "params": [
+        "nums"
+      ]
+    }
   },
   {
     "id": "longest-substring",
@@ -82,24 +295,70 @@
     "points": 200,
     "functionName": "lengthOfLongestSubstring",
     "statement": "Given a string `s`, find the length of the **longest substring** without duplicate characters.",
-    "constraints": ["0 <= s.length <= 5 * 10^4", "s consists of English letters, digits, symbols and spaces"],
-    "starterCode": "/**\n * @param {string} s\n * @return {number}\n */\nfunction lengthOfLongestSubstring(s) {\n  // your code here\n}\n",
+    "constraints": [
+      "0 <= s.length <= 5 * 10^4",
+      "s consists of English letters, digits, symbols and spaces"
+    ],
     "examples": [
-      { "args": ["abcabcbb"], "expected": 3 },
-      { "args": ["bbbbb"], "expected": 1 },
-      { "args": ["pwwkew"], "expected": 3 }
+      {
+        "args": [
+          "abcabcbb"
+        ],
+        "expected": 3
+      },
+      {
+        "args": [
+          "bbbbb"
+        ],
+        "expected": 1
+      },
+      {
+        "args": [
+          "pwwkew"
+        ],
+        "expected": 3
+      }
     ],
     "hiddenTests": [
-      { "args": [""], "expected": 0 },
-      { "args": ["au"], "expected": 2 },
-      { "args": ["dvdf"], "expected": 3 },
-      { "args": ["abba"], "expected": 2 }
+      {
+        "args": [
+          ""
+        ],
+        "expected": 0
+      },
+      {
+        "args": [
+          "au"
+        ],
+        "expected": 2
+      },
+      {
+        "args": [
+          "dvdf"
+        ],
+        "expected": 3
+      },
+      {
+        "args": [
+          "abba"
+        ],
+        "expected": 2
+      }
     ],
     "hints": [
       "A substring is a *window* into the string. Can you grow a window on the right and shrink it on the left only when needed?",
       "Keep a Set (or Map of char → last index) of what's inside the window. When you hit a duplicate, move the left edge forward.",
       "Sliding window: advance right pointer each step; while s[right] is in the window, remove s[left] and advance left. Track max window size. The 'abba' case is why a Map of last-seen indices needs a max() when jumping left."
-    ]
+    ],
+    "signature": {
+      "args": [
+        "string"
+      ],
+      "ret": "int",
+      "params": [
+        "s"
+      ]
+    }
   },
   {
     "id": "merge-intervals",
@@ -108,22 +367,156 @@
     "points": 200,
     "functionName": "merge",
     "statement": "Given an array of `intervals` where `intervals[i] = [start_i, end_i]`, merge all overlapping intervals and return an array of the non-overlapping intervals that cover all the intervals in the input, sorted by start.",
-    "constraints": ["1 <= intervals.length <= 10^4", "0 <= start_i <= end_i <= 10^4"],
-    "starterCode": "/**\n * @param {number[][]} intervals\n * @return {number[][]}\n */\nfunction merge(intervals) {\n  // your code here\n}\n",
+    "constraints": [
+      "1 <= intervals.length <= 10^4",
+      "0 <= start_i <= end_i <= 10^4"
+    ],
     "examples": [
-      { "args": [[[1, 3], [2, 6], [8, 10], [15, 18]]], "expected": [[1, 6], [8, 10], [15, 18]] },
-      { "args": [[[1, 4], [4, 5]]], "expected": [[1, 5]] }
+      {
+        "args": [
+          [
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              6
+            ],
+            [
+              8,
+              10
+            ],
+            [
+              15,
+              18
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            1,
+            6
+          ],
+          [
+            8,
+            10
+          ],
+          [
+            15,
+            18
+          ]
+        ]
+      },
+      {
+        "args": [
+          [
+            [
+              1,
+              4
+            ],
+            [
+              4,
+              5
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            1,
+            5
+          ]
+        ]
+      }
     ],
     "hiddenTests": [
-      { "args": [[[1, 4], [0, 4]]], "expected": [[0, 4]] },
-      { "args": [[[1, 4], [2, 3]]], "expected": [[1, 4]] },
-      { "args": [[[2, 3], [4, 5], [6, 7], [8, 9], [1, 10]]], "expected": [[1, 10]] }
+      {
+        "args": [
+          [
+            [
+              1,
+              4
+            ],
+            [
+              0,
+              4
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            0,
+            4
+          ]
+        ]
+      },
+      {
+        "args": [
+          [
+            [
+              1,
+              4
+            ],
+            [
+              2,
+              3
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            1,
+            4
+          ]
+        ]
+      },
+      {
+        "args": [
+          [
+            [
+              2,
+              3
+            ],
+            [
+              4,
+              5
+            ],
+            [
+              6,
+              7
+            ],
+            [
+              8,
+              9
+            ],
+            [
+              1,
+              10
+            ]
+          ]
+        ],
+        "expected": [
+          [
+            1,
+            10
+          ]
+        ]
+      }
     ],
     "hints": [
       "Overlaps are much easier to spot when the intervals are in a helpful order. What should you sort by?",
       "After sorting by start, two adjacent intervals overlap exactly when the next one's start <= the current merged end.",
       "Sort by start, keep a 'current' interval, and either extend its end (end = max(end, next.end)) or push it and start a new one."
-    ]
+    ],
+    "signature": {
+      "args": [
+        "int[][]"
+      ],
+      "ret": "int[][]",
+      "params": [
+        "intervals"
+      ]
+    }
   },
   {
     "id": "product-except-self",
@@ -132,22 +525,102 @@
     "points": 200,
     "functionName": "productExceptSelf",
     "statement": "Given an integer array `nums`, return an array `answer` such that `answer[i]` is the product of all elements of `nums` **except** `nums[i]`.\n\nYou must write an algorithm that runs in O(n) time and **without using division**.",
-    "constraints": ["2 <= nums.length <= 10^5", "-30 <= nums[i] <= 30"],
-    "starterCode": "/**\n * @param {number[]} nums\n * @return {number[]}\n */\nfunction productExceptSelf(nums) {\n  // your code here\n}\n",
+    "constraints": [
+      "2 <= nums.length <= 10^5",
+      "-30 <= nums[i] <= 30"
+    ],
     "examples": [
-      { "args": [[1, 2, 3, 4]], "expected": [24, 12, 8, 6] },
-      { "args": [[-1, 1, 0, -3, 3]], "expected": [0, 0, 9, 0, 0] }
+      {
+        "args": [
+          [
+            1,
+            2,
+            3,
+            4
+          ]
+        ],
+        "expected": [
+          24,
+          12,
+          8,
+          6
+        ]
+      },
+      {
+        "args": [
+          [
+            -1,
+            1,
+            0,
+            -3,
+            3
+          ]
+        ],
+        "expected": [
+          0,
+          0,
+          9,
+          0,
+          0
+        ]
+      }
     ],
     "hiddenTests": [
-      { "args": [[2, 3]], "expected": [3, 2] },
-      { "args": [[0, 0]], "expected": [0, 0] },
-      { "args": [[1, -1, 1, -1]], "expected": [1, -1, 1, -1] }
+      {
+        "args": [
+          [
+            2,
+            3
+          ]
+        ],
+        "expected": [
+          3,
+          2
+        ]
+      },
+      {
+        "args": [
+          [
+            0,
+            0
+          ]
+        ],
+        "expected": [
+          0,
+          0
+        ]
+      },
+      {
+        "args": [
+          [
+            1,
+            -1,
+            1,
+            -1
+          ]
+        ],
+        "expected": [
+          1,
+          -1,
+          1,
+          -1
+        ]
+      }
     ],
     "hints": [
       "The product excluding position i is (everything to the left of i) × (everything to the right of i).",
       "Can you build an array of prefix products in one pass, and suffix products in another?",
       "Two passes: first fill answer[i] with the product of everything left of i; then sweep right-to-left multiplying in a running suffix product."
-    ]
+    ],
+    "signature": {
+      "args": [
+        "int[]"
+      ],
+      "ret": "int[]",
+      "params": [
+        "nums"
+      ]
+    }
   },
   {
     "id": "coin-change",
@@ -156,23 +629,93 @@
     "points": 300,
     "functionName": "coinChange",
     "statement": "You are given an integer array `coins` representing coin denominations and an integer `amount`.\n\nReturn the **fewest number of coins** needed to make up `amount`. If it cannot be made up by any combination of the coins, return `-1`. You may assume an infinite supply of each coin.",
-    "constraints": ["1 <= coins.length <= 12", "1 <= coins[i] <= 2^31 - 1", "0 <= amount <= 10^4"],
-    "starterCode": "/**\n * @param {number[]} coins\n * @param {number} amount\n * @return {number}\n */\nfunction coinChange(coins, amount) {\n  // your code here\n}\n",
+    "constraints": [
+      "1 <= coins.length <= 12",
+      "1 <= coins[i] <= 2^31 - 1",
+      "0 <= amount <= 10^4"
+    ],
     "examples": [
-      { "args": [[1, 2, 5], 11], "expected": 3 },
-      { "args": [[2], 3], "expected": -1 },
-      { "args": [[1], 0], "expected": 0 }
+      {
+        "args": [
+          [
+            1,
+            2,
+            5
+          ],
+          11
+        ],
+        "expected": 3
+      },
+      {
+        "args": [
+          [
+            2
+          ],
+          3
+        ],
+        "expected": -1
+      },
+      {
+        "args": [
+          [
+            1
+          ],
+          0
+        ],
+        "expected": 0
+      }
     ],
     "hiddenTests": [
-      { "args": [[186, 419, 83, 408], 6249], "expected": 20 },
-      { "args": [[2, 5, 10, 1], 27], "expected": 4 },
-      { "args": [[5], 4], "expected": -1 }
+      {
+        "args": [
+          [
+            186,
+            419,
+            83,
+            408
+          ],
+          6249
+        ],
+        "expected": 20
+      },
+      {
+        "args": [
+          [
+            2,
+            5,
+            10,
+            1
+          ],
+          27
+        ],
+        "expected": 4
+      },
+      {
+        "args": [
+          [
+            5
+          ],
+          4
+        ],
+        "expected": -1
+      }
     ],
     "hints": [
       "Greedy (always take the biggest coin) fails — try coins [1,3,4] with amount 6. What technique handles 'best way to build up to X'?",
       "Define dp[a] = fewest coins to make amount a. How does dp[a] relate to dp[a - coin] for each coin?",
       "Bottom-up DP: dp[0]=0, dp[a] = 1 + min(dp[a - c]) over all coins c <= a. Use Infinity for unreachable amounts and return -1 if dp[amount] is still Infinity."
-    ]
+    ],
+    "signature": {
+      "args": [
+        "int[]",
+        "int"
+      ],
+      "ret": "int",
+      "params": [
+        "coins",
+        "amount"
+      ]
+    }
   },
   {
     "id": "trapping-rain-water",
@@ -181,22 +724,105 @@
     "points": 300,
     "functionName": "trap",
     "statement": "Given `n` non-negative integers representing an elevation map where the width of each bar is 1, compute **how much water** it can trap after raining.",
-    "constraints": ["1 <= height.length <= 2 * 10^4", "0 <= height[i] <= 10^5"],
-    "starterCode": "/**\n * @param {number[]} height\n * @return {number}\n */\nfunction trap(height) {\n  // your code here\n}\n",
+    "constraints": [
+      "1 <= height.length <= 2 * 10^4",
+      "0 <= height[i] <= 10^5"
+    ],
     "examples": [
-      { "args": [[0, 1, 0, 2, 1, 0, 1, 3, 2, 1, 2, 1]], "expected": 6 },
-      { "args": [[4, 2, 0, 3, 2, 5]], "expected": 9 }
+      {
+        "args": [
+          [
+            0,
+            1,
+            0,
+            2,
+            1,
+            0,
+            1,
+            3,
+            2,
+            1,
+            2,
+            1
+          ]
+        ],
+        "expected": 6
+      },
+      {
+        "args": [
+          [
+            4,
+            2,
+            0,
+            3,
+            2,
+            5
+          ]
+        ],
+        "expected": 9
+      }
     ],
     "hiddenTests": [
-      { "args": [[1, 2, 3, 4, 5]], "expected": 0 },
-      { "args": [[5, 4, 3, 2, 1]], "expected": 0 },
-      { "args": [[3, 0, 3]], "expected": 3 },
-      { "args": [[2, 0, 2, 0, 2]], "expected": 4 }
+      {
+        "args": [
+          [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        ],
+        "expected": 0
+      },
+      {
+        "args": [
+          [
+            5,
+            4,
+            3,
+            2,
+            1
+          ]
+        ],
+        "expected": 0
+      },
+      {
+        "args": [
+          [
+            3,
+            0,
+            3
+          ]
+        ],
+        "expected": 3
+      },
+      {
+        "args": [
+          [
+            2,
+            0,
+            2,
+            0,
+            2
+          ]
+        ],
+        "expected": 4
+      }
     ],
     "hints": [
       "Focus on a single column: how much water sits *on top of it*? It depends on the tallest wall to its left and the tallest to its right.",
       "water[i] = min(maxLeft[i], maxRight[i]) - height[i], clamped at 0. Can you precompute maxLeft and maxRight arrays?",
       "Two-pointer refinement: move the pointer on the side with the smaller max; that side's water is decided by its own max alone."
-    ]
+    ],
+    "signature": {
+      "args": [
+        "int[]"
+      ],
+      "ret": "int",
+      "params": [
+        "height"
+      ]
+    }
   }
 ]

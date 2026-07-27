@@ -1,0 +1,242 @@
+[
+  {
+    "id": "d1-output",
+    "concept": "Output",
+    "title": "Say something",
+    "instructions": "Every program starts by talking to you. Print exactly this line:\n\n`Hello, world!`",
+    "why": "Printing is how you'll see what your code is actually doing for the rest of your life. Get comfortable with it now.",
+    "starters": {
+      "javascript": "// Print the greeting below\n",
+      "python": "# Print the greeting below\n",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        // Print the greeting below\n    }\n}\n",
+      "cpp": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // Print the greeting below\n    return 0;\n}\n"
+    },
+    "solutions": {
+      "javascript": "console.log(\"Hello, world!\");",
+      "python": "print(\"Hello, world!\")",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, world!\");\n    }\n}",
+      "cpp": "#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << \"Hello, world!\" << endl;\n    return 0;\n}"
+    },
+    "hints": [
+      "Every language has one obvious way to print a line. In JavaScript it starts with `console`, in Python it's a three-letter word.",
+      "The text has to match exactly — capital H, the comma, the exclamation mark.",
+      "JS: `console.log(\"Hello, world!\")`. Python: `print(\"Hello, world!\")`. Java: `System.out.println(...)`. C++: `cout << ... << endl;`"
+    ]
+  },
+  {
+    "id": "d2-variables",
+    "concept": "Variables & arithmetic",
+    "title": "Store it, then use it",
+    "instructions": "A shop sells **3** notebooks at **$7** each.\n\nStore the quantity and the price in two variables, multiply them, and print exactly:\n\n`Total: 21`",
+    "why": "A variable is a labeled box. Naming your values instead of hardcoding them is the difference between code you can change and code you have to rewrite.",
+    "starters": {
+      "javascript": "const quantity = 3;\nconst price = 7;\n\n// Print the total\n",
+      "python": "quantity = 3\nprice = 7\n\n# Print the total\n",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        int quantity = 3;\n        int price = 7;\n\n        // Print the total\n    }\n}\n",
+      "cpp": "#include <iostream>\nusing namespace std;\n\nint main() {\n    int quantity = 3;\n    int price = 7;\n\n    // Print the total\n    return 0;\n}\n"
+    },
+    "solutions": {
+      "javascript": "const quantity = 3;\nconst price = 7;\nconsole.log(\"Total: \" + quantity * price);",
+      "python": "quantity = 3\nprice = 7\nprint(\"Total:\", quantity * price)",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        int quantity = 3;\n        int price = 7;\n        System.out.println(\"Total: \" + quantity * price);\n    }\n}",
+      "cpp": "#include <iostream>\nusing namespace std;\n\nint main() {\n    int quantity = 3;\n    int price = 7;\n    cout << \"Total: \" << quantity * price << endl;\n    return 0;\n}"
+    },
+    "hints": [
+      "You need two things in one line of output: the label `Total: ` and the computed number.",
+      "Most languages let you glue text and numbers together with `+` (Python can use a comma inside `print`).",
+      "JS: `console.log(\"Total: \" + quantity * price)`. Python: `print(\"Total:\", quantity * price)`."
+    ]
+  },
+  {
+    "id": "d3-loop-array",
+    "concept": "Loops over a list",
+    "title": "Walk the array",
+    "instructions": "Here's an array of six numbers. Use a **loop** to print each element on its own line, in order.\n\nExpected output:\n```\n4\n8\n15\n16\n23\n42\n```",
+    "why": "This is the single most-used pattern in programming. Almost every problem you'll ever solve starts with \"go through the collection one item at a time.\"",
+    "starters": {
+      "javascript": "const nums = [4, 8, 15, 16, 23, 42];\n\n// Loop through nums and print each one\n",
+      "python": "nums = [4, 8, 15, 16, 23, 42]\n\n# Loop through nums and print each one\n",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        int[] nums = {4, 8, 15, 16, 23, 42};\n\n        // Loop through nums and print each one\n    }\n}\n",
+      "cpp": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    vector<int> nums = {4, 8, 15, 16, 23, 42};\n\n    // Loop through nums and print each one\n    return 0;\n}\n"
+    },
+    "solutions": {
+      "javascript": "const nums = [4, 8, 15, 16, 23, 42];\nfor (const n of nums) {\n  console.log(n);\n}",
+      "python": "nums = [4, 8, 15, 16, 23, 42]\nfor n in nums:\n    print(n)",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        int[] nums = {4, 8, 15, 16, 23, 42};\n        for (int n : nums) {\n            System.out.println(n);\n        }\n    }\n}",
+      "cpp": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    vector<int> nums = {4, 8, 15, 16, 23, 42};\n    for (int n : nums) {\n        cout << n << endl;\n    }\n    return 0;\n}"
+    },
+    "hints": [
+      "You want to repeat the same action once per element. That's what a `for` loop is for — don't write six print statements.",
+      "There are two flavors: loop over the *values* directly (`for (const n of nums)` / `for n in nums`), or loop over *indices* 0 to length-1 and read `nums[i]`.",
+      "JS: `for (const n of nums) { console.log(n); }`. Python: `for n in nums:` then an indented `print(n)`."
+    ]
+  },
+  {
+    "id": "d4-conditionals",
+    "concept": "Conditionals inside loops",
+    "title": "Keep only what you want",
+    "instructions": "Same array. This time print **only the even numbers**, one per line.\n\nExpected output:\n```\n4\n8\n16\n42\n```",
+    "why": "Loop + condition is the filtering pattern. Once you can say \"for each thing, if it matches, do something,\" you can express most of the logic you'll ever need.",
+    "starters": {
+      "javascript": "const nums = [4, 8, 15, 16, 23, 42];\n\n// Print only the even numbers\n",
+      "python": "nums = [4, 8, 15, 16, 23, 42]\n\n# Print only the even numbers\n",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        int[] nums = {4, 8, 15, 16, 23, 42};\n\n        // Print only the even numbers\n    }\n}\n",
+      "cpp": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    vector<int> nums = {4, 8, 15, 16, 23, 42};\n\n    // Print only the even numbers\n    return 0;\n}\n"
+    },
+    "solutions": {
+      "javascript": "const nums = [4, 8, 15, 16, 23, 42];\nfor (const n of nums) {\n  if (n % 2 === 0) console.log(n);\n}",
+      "python": "nums = [4, 8, 15, 16, 23, 42]\nfor n in nums:\n    if n % 2 == 0:\n        print(n)",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        int[] nums = {4, 8, 15, 16, 23, 42};\n        for (int n : nums) {\n            if (n % 2 == 0) System.out.println(n);\n        }\n    }\n}",
+      "cpp": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    vector<int> nums = {4, 8, 15, 16, 23, 42};\n    for (int n : nums) {\n        if (n % 2 == 0) cout << n << endl;\n    }\n    return 0;\n}"
+    },
+    "hints": [
+      "Start from your loop in the last drill, then wrap the print in a question: \"is this number even?\"",
+      "The remainder operator `%` gives you what's left after division. An even number divided by 2 leaves nothing.",
+      "`if (n % 2 === 0)` in JS, `if n % 2 == 0:` in Python. Put the print inside that `if`."
+    ]
+  },
+  {
+    "id": "d5-accumulate",
+    "concept": "Accumulator pattern",
+    "title": "Add them all up",
+    "instructions": "Add up every number in the array and print the total on one line.\n\nExpected output:\n```\n108\n```",
+    "why": "The accumulator — a variable that lives *outside* the loop and gets updated *inside* it — is how you build up an answer across many steps. Sums, counts, maximums, and strings all use it.",
+    "starters": {
+      "javascript": "const nums = [4, 8, 15, 16, 23, 42];\n\n// Add them all up, then print the total\n",
+      "python": "nums = [4, 8, 15, 16, 23, 42]\n\n# Add them all up, then print the total\n",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        int[] nums = {4, 8, 15, 16, 23, 42};\n\n        // Add them all up, then print the total\n    }\n}\n",
+      "cpp": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    vector<int> nums = {4, 8, 15, 16, 23, 42};\n\n    // Add them all up, then print the total\n    return 0;\n}\n"
+    },
+    "solutions": {
+      "javascript": "const nums = [4, 8, 15, 16, 23, 42];\nlet total = 0;\nfor (const n of nums) {\n  total += n;\n}\nconsole.log(total);",
+      "python": "nums = [4, 8, 15, 16, 23, 42]\ntotal = 0\nfor n in nums:\n    total += n\nprint(total)",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        int[] nums = {4, 8, 15, 16, 23, 42};\n        int total = 0;\n        for (int n : nums) {\n            total += n;\n        }\n        System.out.println(total);\n    }\n}",
+      "cpp": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    vector<int> nums = {4, 8, 15, 16, 23, 42};\n    int total = 0;\n    for (int n : nums) {\n        total += n;\n    }\n    cout << total << endl;\n    return 0;\n}"
+    },
+    "hints": [
+      "You need somewhere to keep the running total. Where should that variable be created — inside the loop, or before it?",
+      "Create `total = 0` *before* the loop, add to it *inside* the loop, and print it *after* the loop. If you print inside, you'll get six lines instead of one.",
+      "`let total = 0;` then `total += n;` inside the loop, then `console.log(total);` after it."
+    ]
+  },
+  {
+    "id": "d6-max",
+    "concept": "Tracking a best-so-far",
+    "title": "Find the biggest",
+    "instructions": "Find the largest number in the array and print it.\n\nDon't use a built-in max function — write the loop yourself.\n\nExpected output:\n```\n42\n```",
+    "why": "\"Best so far\" is the accumulator's smarter cousin, and it's the seed of real algorithms — Kadane's maximum-subarray, greedy strategies, and most optimization problems are this pattern in disguise.",
+    "starters": {
+      "javascript": "const nums = [4, 8, 15, 16, 23, 42];\n\n// Find the largest value without using Math.max\n",
+      "python": "nums = [4, 8, 15, 16, 23, 42]\n\n# Find the largest value without using max()\n",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        int[] nums = {4, 8, 15, 16, 23, 42};\n\n        // Find the largest value yourself\n    }\n}\n",
+      "cpp": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    vector<int> nums = {4, 8, 15, 16, 23, 42};\n\n    // Find the largest value yourself\n    return 0;\n}\n"
+    },
+    "solutions": {
+      "javascript": "const nums = [4, 8, 15, 16, 23, 42];\nlet best = nums[0];\nfor (const n of nums) {\n  if (n > best) best = n;\n}\nconsole.log(best);",
+      "python": "nums = [4, 8, 15, 16, 23, 42]\nbest = nums[0]\nfor n in nums:\n    if n > best:\n        best = n\nprint(best)",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        int[] nums = {4, 8, 15, 16, 23, 42};\n        int best = nums[0];\n        for (int n : nums) {\n            if (n > best) best = n;\n        }\n        System.out.println(best);\n    }\n}",
+      "cpp": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint main() {\n    vector<int> nums = {4, 8, 15, 16, 23, 42};\n    int best = nums[0];\n    for (int n : nums) {\n        if (n > best) best = n;\n    }\n    cout << best << endl;\n    return 0;\n}"
+    },
+    "hints": [
+      "Keep a variable holding the biggest value you've seen so far, and update it whenever you meet something bigger.",
+      "What should it start at? Starting at 0 breaks on all-negative arrays — starting at the *first element* always works.",
+      "`let best = nums[0];` then inside the loop `if (n > best) best = n;`, then print `best`."
+    ]
+  },
+  {
+    "id": "d7-strings",
+    "concept": "Strings as sequences",
+    "title": "Count the vowels",
+    "instructions": "Count how many vowels (`a`, `e`, `i`, `o`, `u`) appear in the word `programming` and print just the number.\n\nExpected output:\n```\n3\n```",
+    "why": "A string is just an array of characters. Once that clicks, every loop trick you know works on text too — and half of all interview questions are string questions.",
+    "starters": {
+      "javascript": "const word = \"programming\";\n\n// Count the vowels and print the count\n",
+      "python": "word = \"programming\"\n\n# Count the vowels and print the count\n",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        String word = \"programming\";\n\n        // Count the vowels and print the count\n    }\n}\n",
+      "cpp": "#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string word = \"programming\";\n\n    // Count the vowels and print the count\n    return 0;\n}\n"
+    },
+    "solutions": {
+      "javascript": "const word = \"programming\";\nlet count = 0;\nfor (const ch of word) {\n  if (\"aeiou\".includes(ch)) count++;\n}\nconsole.log(count);",
+      "python": "word = \"programming\"\ncount = 0\nfor ch in word:\n    if ch in \"aeiou\":\n        count += 1\nprint(count)",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        String word = \"programming\";\n        int count = 0;\n        for (char ch : word.toCharArray()) {\n            if (\"aeiou\".indexOf(ch) >= 0) count++;\n        }\n        System.out.println(count);\n    }\n}",
+      "cpp": "#include <iostream>\n#include <string>\nusing namespace std;\n\nint main() {\n    string word = \"programming\";\n    int count = 0;\n    for (char ch : word) {\n        if (string(\"aeiou\").find(ch) != string::npos) count++;\n    }\n    cout << count << endl;\n    return 0;\n}"
+    },
+    "hints": [
+      "You can loop over a string one character at a time, exactly like an array. Combine that with a counter.",
+      "For each character, ask \"is this one of the five vowels?\" The neatest way is to check membership in the string `\"aeiou\"`.",
+      "JS: `for (const ch of word) { if (\"aeiou\".includes(ch)) count++; }`. Python: `if ch in \"aeiou\": count += 1`."
+    ]
+  },
+  {
+    "id": "d8-functions",
+    "concept": "Functions",
+    "title": "Package it up",
+    "instructions": "Write a function called `double` that takes a number and **returns** it multiplied by 2.\n\nThen loop over the array and print the doubled value of each element.\n\nExpected output:\n```\n8\n16\n30\n32\n46\n84\n```",
+    "why": "A function is a named, reusable piece of logic — and crucially it *returns* a value instead of printing one. Every LeetCode-style problem asks you to write exactly one function, so this is the bridge to the daily challenge.",
+    "starters": {
+      "javascript": "const nums = [4, 8, 15, 16, 23, 42];\n\nfunction double(n) {\n  // return n times 2\n}\n\n// Now loop and print double(n) for each element\n",
+      "python": "nums = [4, 8, 15, 16, 23, 42]\n\ndef double(n):\n    # return n times 2\n    pass\n\n# Now loop and print double(n) for each element\n",
+      "java": "public class Main {\n    static int double_(int n) {\n        // return n times 2\n        return 0;\n    }\n\n    public static void main(String[] args) {\n        int[] nums = {4, 8, 15, 16, 23, 42};\n\n        // Loop and print double_(n) for each element\n    }\n}\n",
+      "cpp": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint doubleIt(int n) {\n    // return n times 2\n    return 0;\n}\n\nint main() {\n    vector<int> nums = {4, 8, 15, 16, 23, 42};\n\n    // Loop and print doubleIt(n) for each element\n    return 0;\n}\n"
+    },
+    "solutions": {
+      "javascript": "const nums = [4, 8, 15, 16, 23, 42];\nfunction double(n) {\n  return n * 2;\n}\nfor (const n of nums) {\n  console.log(double(n));\n}",
+      "python": "nums = [4, 8, 15, 16, 23, 42]\n\ndef double(n):\n    return n * 2\n\nfor n in nums:\n    print(double(n))",
+      "java": "public class Main {\n    static int double_(int n) {\n        return n * 2;\n    }\n\n    public static void main(String[] args) {\n        int[] nums = {4, 8, 15, 16, 23, 42};\n        for (int n : nums) {\n            System.out.println(double_(n));\n        }\n    }\n}",
+      "cpp": "#include <iostream>\n#include <vector>\nusing namespace std;\n\nint doubleIt(int n) {\n    return n * 2;\n}\n\nint main() {\n    vector<int> nums = {4, 8, 15, 16, 23, 42};\n    for (int n : nums) {\n        cout << doubleIt(n) << endl;\n    }\n    return 0;\n}"
+    },
+    "hints": [
+      "Two separate jobs: (1) make the function hand back a value with `return`, (2) call it from inside your loop.",
+      "`return` is not the same as printing. The function returns the number; the *loop* is what prints it.",
+      "`function double(n) { return n * 2; }` then `for (const n of nums) console.log(double(n));`"
+    ]
+  },
+  {
+    "id": "d9-nested",
+    "concept": "Nested loops & 2D data",
+    "title": "Loop inside a loop",
+    "instructions": "Print a 3×3 multiplication table. Each row has three numbers separated by single spaces.\n\nExpected output:\n```\n1 2 3\n2 4 6\n3 6 9\n```",
+    "why": "A loop inside a loop is how you handle grids, matrices, and every-pair comparisons. It's also your first taste of why nesting loops makes code slower — the O(n²) you'll hear about constantly.",
+    "starters": {
+      "javascript": "// Print a 3x3 multiplication table, rows of space-separated numbers\n",
+      "python": "# Print a 3x3 multiplication table, rows of space-separated numbers\n",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        // Print a 3x3 multiplication table\n    }\n}\n",
+      "cpp": "#include <iostream>\nusing namespace std;\n\nint main() {\n    // Print a 3x3 multiplication table\n    return 0;\n}\n"
+    },
+    "solutions": {
+      "javascript": "for (let i = 1; i <= 3; i++) {\n  const row = [];\n  for (let j = 1; j <= 3; j++) {\n    row.push(i * j);\n  }\n  console.log(row.join(\" \"));\n}",
+      "python": "for i in range(1, 4):\n    row = []\n    for j in range(1, 4):\n        row.append(i * j)\n    print(\" \".join(str(x) for x in row))",
+      "java": "public class Main {\n    public static void main(String[] args) {\n        for (int i = 1; i <= 3; i++) {\n            StringBuilder row = new StringBuilder();\n            for (int j = 1; j <= 3; j++) {\n                if (j > 1) row.append(\" \");\n                row.append(i * j);\n            }\n            System.out.println(row.toString());\n        }\n    }\n}",
+      "cpp": "#include <iostream>\nusing namespace std;\n\nint main() {\n    for (int i = 1; i <= 3; i++) {\n        for (int j = 1; j <= 3; j++) {\n            if (j > 1) cout << \" \";\n            cout << i * j;\n        }\n        cout << endl;\n    }\n    return 0;\n}"
+    },
+    "hints": [
+      "The outer loop picks the row (1, 2, 3). The inner loop picks the column (1, 2, 3). The value printed is row × column.",
+      "Each row is *one* printed line, so build the row up first and print once per outer iteration — or print without a newline and add the newline at the end of each row.",
+      "Collect the three products into a list and join them with a space, then print. Watch out for trailing spaces."
+    ]
+  },
+  {
+    "id": "d10-maps",
+    "concept": "Hash maps",
+    "title": "Count the letters",
+    "instructions": "Count how many times each letter appears in `banana`, then print each letter and its count on its own line, **in alphabetical order**.\n\nExpected output:\n```\na 3\nb 1\nn 2\n```",
+    "why": "The hash map is the single highest-leverage data structure in interviews. \"Have I seen this before?\" and \"how many of each?\" both become one-liners — and it's the trick behind Two Sum, your first daily challenge.",
+    "starters": {
+      "javascript": "const word = \"banana\";\n\n// Count each letter, then print \"letter count\" lines in alphabetical order\n",
+      "python": "word = \"banana\"\n\n# Count each letter, then print \"letter count\" lines in alphabetical order\n",
+      "java": "import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        String word = \"banana\";\n\n        // Count each letter, print in alphabetical order\n    }\n}\n",
+      "cpp": "#include <iostream>\n#include <string>\n#include <map>\nusing namespace std;\n\nint main() {\n    string word = \"banana\";\n\n    // Count each letter, print in alphabetical order\n    return 0;\n}\n"
+    },
+    "solutions": {
+      "javascript": "const word = \"banana\";\nconst counts = new Map();\nfor (const ch of word) {\n  counts.set(ch, (counts.get(ch) || 0) + 1);\n}\nfor (const key of [...counts.keys()].sort()) {\n  console.log(key + \" \" + counts.get(key));\n}",
+      "python": "word = \"banana\"\ncounts = {}\nfor ch in word:\n    counts[ch] = counts.get(ch, 0) + 1\nfor key in sorted(counts):\n    print(key, counts[key])",
+      "java": "import java.util.*;\n\npublic class Main {\n    public static void main(String[] args) {\n        String word = \"banana\";\n        Map<Character, Integer> counts = new TreeMap<>();\n        for (char ch : word.toCharArray()) {\n            counts.put(ch, counts.getOrDefault(ch, 0) + 1);\n        }\n        for (Map.Entry<Character, Integer> e : counts.entrySet()) {\n            System.out.println(e.getKey() + \" \" + e.getValue());\n        }\n    }\n}",
+      "cpp": "#include <iostream>\n#include <string>\n#include <map>\nusing namespace std;\n\nint main() {\n    string word = \"banana\";\n    map<char, int> counts;\n    for (char ch : word) counts[ch]++;\n    for (auto& p : counts) cout << p.first << \" \" << p.second << endl;\n    return 0;\n}"
+    },
+    "hints": [
+      "You need to remember a count *per letter*. A plain variable can't do that — you need a structure that maps a key to a value.",
+      "For each character: look up its current count (defaulting to 0 if unseen), add one, store it back.",
+      "JS: `counts.set(ch, (counts.get(ch) || 0) + 1)`. Python: `counts[ch] = counts.get(ch, 0) + 1`. Then sort the keys before printing."
+    ]
+  }
+]

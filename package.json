@@ -1,7 +1,7 @@
 {
-  "name": "dailycode",
+  "name": "ramp",
   "version": "1.0.0",
-  "description": "One problem a day. Solve it, climb the leaderboard — with an AI coach that shows up when you're stuck.",
+  "description": "Learn to code by writing code \u2014 an AI coach watches you type, hands you one drill at a time, then unlocks a daily algorithm challenge.",
   "type": "module",
   "main": "server/index.js",
   "scripts": {
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
+    "codemirror": "^5.65.16",
     "express": "^4.21.2"
   }
 }

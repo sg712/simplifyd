@@ -1,91 +1,197 @@
-// Runs user-submitted JavaScript against a problem's test cases in a separate
-// node process with a hard timeout. This is process isolation, not a hardened
-// security sandbox — don't expose this judge to hostile traffic without
-// containerizing it (see README).
+// Runs user-submitted code against a problem's tests, in a scratch directory,
+// in a child process with a hard timeout.
+//
+// This is process isolation, not a hardened security sandbox — fine for a demo
+// or a trusted group. For hostile traffic, run it inside a locked-down
+// container with no network and a read-only filesystem (see README).
 import { execFile } from 'node:child_process';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { LANGUAGES, isAvailable } from './languages.js';
 
-const TIMEOUT_MS = 4000;
-const MAX_OUTPUT = 256 * 1024;
+const RUN_TIMEOUT_MS = 6000;
+const COMPILE_TIMEOUT_MS = 20000;
+const MAX_OUTPUT = 512 * 1024;
 
-function buildHarness(functionName, tests) {
-  return `
-'use strict';
-const __tests = ${JSON.stringify(tests)};
-const __results = [];
-
-function deepEqual(a, b) {
-  if (a === b) return true; // note: treats -0 and 0 as equal, unlike Object.is
-  if (typeof a === 'number' && typeof b === 'number' && Number.isNaN(a) && Number.isNaN(b)) return true;
-  if (typeof a !== typeof b) return false;
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false;
-    return a.every((v, i) => deepEqual(v, b[i]));
-  }
-  if (a && b && typeof a === 'object') {
-    const ka = Object.keys(a), kb = Object.keys(b);
-    if (ka.length !== kb.length) return false;
-    return ka.every((k) => deepEqual(a[k], b[k]));
-  }
-  return false;
-}
-
-// --- user code is spliced in below ---
-USER_CODE_PLACEHOLDER
-
-for (const t of __tests) {
-  const entry = { pass: false };
-  try {
-    if (typeof ${JSON.stringify(functionName)} === 'undefined' || typeof ${functionName} !== 'function') {
-      throw new Error('Function "${functionName}" is not defined. Keep the starter function name.');
-    }
-    const started = Date.now();
-    const actual = ${functionName}(...structuredClone(t.args));
-    entry.ms = Date.now() - started;
-    entry.actual = actual === undefined ? null : actual;
-    entry.pass = deepEqual(actual, t.expected);
-  } catch (err) {
-    entry.error = String(err && err.stack ? err.stack.split('\\n').slice(0, 4).join('\\n') : err);
-  }
-  __results.push(entry);
-}
-process.stdout.write('\\n__JUDGE_RESULT__' + JSON.stringify(__results));
-`;
-}
-
-export function runTests(userCode, functionName, tests) {
+function exec(cmd, args, opts) {
   return new Promise((resolve) => {
-    const harness = buildHarness(functionName, tests).replace(
-      'USER_CODE_PLACEHOLDER',
-      userCode
-    );
-    const child = execFile(
-      process.execPath,
-      ['--max-old-space-size=128', '-e', harness],
-      { timeout: TIMEOUT_MS, maxBuffer: MAX_OUTPUT, env: {} },
-      (err, stdout = '', stderr = '') => {
-        const marker = stdout.lastIndexOf('__JUDGE_RESULT__');
-        if (marker !== -1) {
-          try {
-            const results = JSON.parse(stdout.slice(marker + '__JUDGE_RESULT__'.length));
-            return resolve({
-              ok: true,
-              results,
-              logs: stdout.slice(0, marker).slice(0, 4000),
-            });
-          } catch {}
-        }
-        if (err && err.killed) {
-          return resolve({
-            ok: false,
-            error: `Time limit exceeded (${TIMEOUT_MS / 1000}s). Look for an infinite loop or a slow algorithm.`,
-          });
-        }
-        resolve({
-          ok: false,
-          error: (stderr || String(err || 'Unknown execution error')).slice(0, 2000),
-        });
-      }
-    );
-    child.on('error', () => resolve({ ok: false, error: 'Failed to start judge process' }));
+    const child = execFile(cmd, args, opts, (err, stdout = '', stderr = '') => {
+      resolve({ err, stdout, stderr });
+    });
+    child.on('error', (err) => resolve({ err, stdout: '', stderr: String(err) }));
   });
+}
+
+// Harness output: one `__DC__<i>|<STATUS>|<base64>` line per completed test.
+// Tests missing from the output crashed the process (segfault, OOM, timeout).
+function parseResults(stdout, testCount) {
+  const results = Array.from({ length: testCount }, () => null);
+  for (const line of stdout.split('\n')) {
+    const m = /^__DC__(\d+)\|(PASS|FAIL|ERR)\|(.*)$/.exec(line.trim());
+    if (!m) continue;
+    const idx = Number(m[1]);
+    if (idx < 0 || idx >= testCount) continue;
+    let payload = '';
+    try {
+      payload = Buffer.from(m[3], 'base64').toString('utf8');
+    } catch {}
+    results[idx] =
+      m[2] === 'ERR'
+        ? { pass: false, error: payload.slice(0, 600) }
+        : { pass: m[2] === 'PASS', actual: payload.slice(0, 400) };
+  }
+  return results;
+}
+
+function stripLogs(stdout) {
+  return stdout
+    .split('\n')
+    .filter((l) => !l.startsWith('__DC__'))
+    .join('\n')
+    .trim()
+    .slice(0, 4000);
+}
+
+// Drill mode: the user writes a complete little program and we compare what it
+// prints. No harness — their file *is* the program.
+export async function runProgram(userCode, langId) {
+  const lang = LANGUAGES[langId];
+  if (!lang) return { ok: false, error: `Unknown language: ${langId}` };
+  if (!isAvailable(langId)) {
+    return { ok: false, error: `${lang.label} isn't available on this server.` };
+  }
+
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dailycode-drill-'));
+  try {
+    await fs.writeFile(path.join(dir, lang.file), userCode);
+
+    if (lang.compile) {
+      const [cmd, args] = lang.compile();
+      const { err, stderr } = await exec(cmd, args, {
+        cwd: dir,
+        timeout: COMPILE_TIMEOUT_MS,
+        maxBuffer: MAX_OUTPUT,
+      });
+      if (err) {
+        return {
+          ok: false,
+          phase: 'compile',
+          error: err.killed ? 'Compilation timed out.' : cleanCompileError(stderr, lang.id),
+        };
+      }
+    }
+
+    const [runCmd, runArgs] = lang.run();
+    const { err, stdout, stderr } = await exec(runCmd, runArgs, {
+      cwd: dir,
+      timeout: RUN_TIMEOUT_MS,
+      maxBuffer: MAX_OUTPUT,
+      env: { PATH: process.env.PATH, HOME: dir },
+    });
+
+    if (err && err.killed) {
+      return {
+        ok: false,
+        phase: 'run',
+        error: `Time limit exceeded (${RUN_TIMEOUT_MS / 1000}s). Is there a loop that never ends?`,
+      };
+    }
+    if (err) {
+      return {
+        ok: false,
+        phase: 'run',
+        error: (stderr || String(err)).slice(0, 1500),
+        stdout: stdout.slice(0, 4000),
+      };
+    }
+    return { ok: true, stdout: stdout.slice(0, 8000), stderr: stderr.slice(0, 1000) };
+  } catch (err) {
+    return { ok: false, error: `Judge error: ${err.message}` };
+  } finally {
+    fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+// Compare printed output leniently on whitespace but strictly on content.
+export function normalizeOutput(s) {
+  return String(s ?? '')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/\s+$/, ''))
+    .join('\n')
+    .replace(/\n+$/, '');
+}
+
+export async function runTests(userCode, problem, tests, langId) {
+  const lang = LANGUAGES[langId];
+  if (!lang) return { ok: false, error: `Unknown language: ${langId}` };
+  if (!isAvailable(langId)) {
+    return { ok: false, error: `${lang.label} isn't available on this server.` };
+  }
+
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'dailycode-'));
+  try {
+    await fs.writeFile(path.join(dir, lang.file), lang.harness(problem, userCode, tests));
+
+    if (lang.compile) {
+      const [cmd, args] = lang.compile();
+      const { err, stderr } = await exec(cmd, args, {
+        cwd: dir,
+        timeout: COMPILE_TIMEOUT_MS,
+        maxBuffer: MAX_OUTPUT,
+      });
+      if (err) {
+        const message = err.killed
+          ? 'Compilation timed out.'
+          : cleanCompileError(stderr, lang.id);
+        return { ok: false, error: message, phase: 'compile' };
+      }
+    }
+
+    const [runCmd, runArgs] = lang.run();
+    const { err, stdout, stderr } = await exec(runCmd, runArgs, {
+      cwd: dir,
+      timeout: RUN_TIMEOUT_MS,
+      maxBuffer: MAX_OUTPUT,
+      env: { PATH: process.env.PATH, HOME: dir },
+    });
+
+    const parsed = parseResults(stdout, tests.length);
+    const completed = parsed.filter(Boolean).length;
+
+    if (err && err.killed && completed < tests.length) {
+      return {
+        ok: false,
+        error: `Time limit exceeded (${RUN_TIMEOUT_MS / 1000}s) on test ${completed + 1}. Look for an infinite loop or an algorithm that's too slow.`,
+        phase: 'run',
+      };
+    }
+    if (completed === 0) {
+      return {
+        ok: false,
+        error: (stderr || String(err || 'Your program produced no results.')).slice(0, 1500),
+        phase: 'run',
+      };
+    }
+
+    // Fill any gap left by a mid-run crash (segfault, OOM) as a failure.
+    const results = parsed.map(
+      (r) => r || { pass: false, error: 'Program crashed before this test finished.' }
+    );
+    return { ok: true, results, logs: stripLogs(stdout) };
+  } catch (err) {
+    return { ok: false, error: `Judge error: ${err.message}` };
+  } finally {
+    fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+  }
+}
+
+// Compiler errors reference our generated harness; trim it to the part the
+// user can act on and hide the wrapper's line numbers where we can.
+function cleanCompileError(stderr, langId) {
+  const lines = stderr.split('\n').filter((l) => l.trim());
+  const relevant = lines.filter((l) => !/^\s*(\^|~|\||\d+\s*\|)/.test(l)).slice(0, 12);
+  const label = langId === 'java' ? 'Java' : 'C++';
+  return `${label} compile error:\n${relevant.join('\n').slice(0, 1500)}`;
 }

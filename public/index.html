@@ -3,136 +3,249 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>DailyCode — one problem a day</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css" />
+  <title>Ramp — learn to code, one rung at a time</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⬡</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="vendor/codemirror.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- ======== AUTH VIEW ======== -->
-  <div id="view-auth" class="view hidden">
+
+<!-- ═══════════ AUTH ═══════════ -->
+<div id="view-auth" class="view hidden">
+  <div class="auth-shell">
+    <div class="auth-hero">
+      <div class="mark">⬡</div>
+      <h1 class="brand">Ramp</h1>
+      <p class="brand-sub">Learn to code by <em>writing</em> code.</p>
+      <ol class="hero-steps">
+        <li><span class="step-n">1</span><div><b>Train with Sage.</b> Your AI coach hands you one small drill at a time — print an array, filter it, count with a map. Finish one, it writes the next.</div></li>
+        <li><span class="step-n">2</span><div><b>Graduate.</b> Ten rungs and the daily challenge unlocks.</div></li>
+        <li><span class="step-n">3</span><div><b>Keep the streak.</b> One real problem a day, same for everyone. Solve it, share it, climb.</div></li>
+      </ol>
+    </div>
+
     <div class="auth-card">
-      <div class="logo-big">⚡ DailyCode</div>
-      <p class="tagline">One problem a day. Solve it, earn points, climb the board.<br/>And when you're stuck — <span class="sage-accent">Sage</span> shows up.</p>
       <div class="auth-tabs">
         <button id="tab-login" class="auth-tab active">Sign in</button>
-        <button id="tab-register" class="auth-tab">Create account</button>
+        <button id="tab-register" class="auth-tab">Start training</button>
       </div>
       <form id="auth-form">
-        <input id="auth-username" type="text" placeholder="username" autocomplete="username" required />
-        <input id="auth-password" type="password" placeholder="password" autocomplete="current-password" required />
+        <label class="field">
+          <span>Username</span>
+          <input id="auth-username" type="text" autocomplete="username" placeholder="pick a handle" required />
+        </label>
+        <label class="field">
+          <span>Password</span>
+          <input id="auth-password" type="password" autocomplete="current-password" placeholder="6+ characters" required />
+        </label>
+        <label class="field" id="auth-lang-field">
+          <span>Language to learn in</span>
+          <select id="auth-language"></select>
+        </label>
         <button type="submit" class="btn btn-primary btn-block" id="auth-submit">Sign in</button>
       </form>
       <div id="auth-error" class="error-text"></div>
     </div>
   </div>
+</div>
 
-  <!-- ======== APP SHELL ======== -->
-  <div id="view-app" class="view hidden">
-    <header class="topbar">
-      <div class="logo">⚡ DailyCode</div>
-      <nav>
-        <button data-nav="solve" class="nav-btn active">Today</button>
-        <button data-nav="board" class="nav-btn">Leaderboard</button>
-      </nav>
-      <div class="topbar-right">
-        <span class="chip" id="chip-streak" title="Daily streak">🔥 0</span>
-        <span class="chip" id="chip-points" title="Total points">⭐ 0</span>
-        <label class="sage-toggle" title="Sage, your AI coach, appears in the editor when you seem stuck">
-          <input type="checkbox" id="sage-enabled" />
-          <span class="sage-toggle-label">🔮 Sage</span>
-        </label>
-        <span class="chip chip-user" id="chip-user"></span>
-        <button id="btn-logout" class="btn btn-ghost">Sign out</button>
+<!-- ═══════════ APP ═══════════ -->
+<div id="view-app" class="view hidden">
+  <header class="topbar">
+    <div class="brand-mini"><span class="mark-mini">⬡</span> Ramp</div>
+    <nav class="nav">
+      <button data-nav="train" class="nav-btn active">Training</button>
+      <button data-nav="daily" class="nav-btn" id="nav-daily">Daily <span class="lock" id="daily-lock">🔒</span></button>
+      <button data-nav="board" class="nav-btn">Board</button>
+    </nav>
+    <div class="topbar-right">
+      <span class="chip" id="chip-streak" title="Day streak">🔥 <b>0</b></span>
+      <span class="chip" id="chip-points" title="Total points">✦ <b>0</b></span>
+      <select id="lang-select" class="lang-select" title="Language"></select>
+      <label class="sage-switch" title="Sage, your AI coach">
+        <input type="checkbox" id="sage-enabled" />
+        <span class="sage-switch-track"><span class="sage-switch-thumb">🔮</span></span>
+      </label>
+      <div class="user-menu">
+        <button class="avatar" id="chip-user">?</button>
+        <div class="user-drop">
+          <div class="user-drop-name" id="drop-name"></div>
+          <button id="btn-logout" class="btn btn-ghost btn-block">Sign out</button>
+        </div>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <!-- ======== SOLVE ======== -->
-    <main id="panel-solve" class="panel">
-      <section class="problem-pane">
-        <div class="problem-head">
+  <!-- ─────── TRAINING ─────── -->
+  <main id="panel-train" class="panel split">
+    <section class="pane pane-left">
+      <div class="ladder-head">
+        <div class="ladder-title">
+          <span class="eyebrow">Training ladder</span>
+          <h2 id="ladder-count">Rung 1 of 10</h2>
+        </div>
+        <div id="ladder-rungs" class="ladder-rungs"></div>
+      </div>
+
+      <div id="sage-feedback" class="sage-note hidden"></div>
+
+      <article class="card drill-card" id="drill-card">
+        <div class="card-top">
+          <span class="pill pill-concept" id="drill-concept">…</span>
+          <span class="pill pill-source" id="drill-source"></span>
+        </div>
+        <h1 id="drill-title">Loading your first drill…</h1>
+        <div id="drill-instructions" class="prose"></div>
+        <div class="why-box" id="drill-why-box">
+          <span class="why-label">Why this matters</span>
+          <p id="drill-why"></p>
+        </div>
+        <div class="expected-box">
+          <span class="expected-label">Your program should print</span>
+          <pre id="drill-expected"></pre>
+        </div>
+      </article>
+
+      <div class="card-actions">
+        <button id="btn-skip" class="btn btn-ghost btn-sm">Shuffle this drill</button>
+      </div>
+    </section>
+
+    <section class="pane pane-right editor-pane" id="train-editor-pane">
+      <div class="editor-bar">
+        <span class="editor-file" id="train-filename">main.js</span>
+        <div class="editor-actions">
+          <button id="btn-drill-reset" class="btn btn-ghost btn-sm">Reset</button>
+          <button id="btn-drill-run" class="btn btn-primary">Run &amp; check</button>
+        </div>
+      </div>
+      <div id="train-editor-host" class="editor-host"></div>
+      <div class="out-panel" id="train-out">
+        <div class="out-empty">Write some code, then hit <b>Run &amp; check</b>.</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ─────── DAILY ─────── -->
+  <main id="panel-daily" class="panel split hidden">
+    <section class="pane pane-left">
+      <div id="daily-locked" class="locked-card hidden">
+        <div class="locked-emoji">🔒</div>
+        <h2>Daily challenge is locked</h2>
+        <p>Finish the training ladder and this opens up: one real algorithm problem a day, the same one for everybody, with a streak to protect.</p>
+        <div class="locked-progress"><div id="locked-bar"></div></div>
+        <p class="locked-count" id="locked-count"></p>
+        <button class="btn btn-primary" data-goto="train">Back to training</button>
+      </div>
+
+      <div id="daily-content">
+        <div class="daily-head">
+          <span class="eyebrow">Today's challenge · <span id="p-number"></span></span>
           <h1 id="p-title">…</h1>
-          <div class="problem-meta">
-            <span id="p-difficulty" class="badge">…</span>
-            <span id="p-points" class="badge badge-points">…</span>
+          <div class="meta-row">
+            <span class="pill" id="p-difficulty">…</span>
+            <span class="pill pill-points" id="p-points">…</span>
+            <span class="countdown" id="p-countdown"></span>
           </div>
         </div>
-        <div id="p-countdown" class="countdown"></div>
-        <div id="p-statement" class="statement"></div>
-        <h3>Examples</h3>
-        <div id="p-examples"></div>
-        <h3>Constraints</h3>
-        <ul id="p-constraints"></ul>
-      </section>
+        <article class="card">
+          <div id="p-statement" class="prose"></div>
+          <h3 class="sub">Examples</h3>
+          <div id="p-examples"></div>
+          <h3 class="sub">Constraints</h3>
+          <ul id="p-constraints" class="constraints"></ul>
+        </article>
+      </div>
+    </section>
 
-      <section class="editor-pane">
-        <div class="editor-toolbar">
-          <span class="editor-lang">JavaScript</span>
-          <div class="editor-actions">
-            <button id="btn-reset" class="btn btn-ghost">Reset</button>
-            <button id="btn-run" class="btn">▷ Run</button>
-            <button id="btn-submit" class="btn btn-primary">Submit</button>
-          </div>
+    <section class="pane pane-right editor-pane" id="daily-editor-pane">
+      <div class="editor-bar">
+        <span class="editor-file" id="daily-filename">main.js</span>
+        <div class="editor-actions">
+          <button id="btn-reset" class="btn btn-ghost btn-sm">Reset</button>
+          <button id="btn-run" class="btn">▷ Run</button>
+          <button id="btn-submit" class="btn btn-primary">Submit</button>
         </div>
-        <div id="editor-host"></div>
-        <div class="console" id="console">
-          <div class="console-placeholder">Run your code to see results…</div>
-        </div>
+      </div>
+      <div id="daily-editor-host" class="editor-host"></div>
+      <div class="out-panel" id="daily-out">
+        <div class="out-empty">Run against the examples first, then submit for the hidden tests.</div>
+      </div>
+    </section>
+  </main>
 
-        <!-- Sage orb + panel live inside the editor pane -->
-        <div id="sage-orb" class="sage-orb hidden" title="Sage — your AI coach">
-          <span class="sage-orb-icon">🔮</span>
-          <span id="sage-bubble" class="sage-bubble hidden"></span>
-        </div>
-        <div id="sage-panel" class="sage-panel hidden">
-          <div class="sage-panel-head">
-            <span>🔮 Sage</span>
-            <span id="sage-status" class="sage-status"></span>
-            <button id="sage-close" class="btn btn-ghost">✕</button>
-          </div>
-          <div id="sage-messages" class="sage-messages"></div>
-          <div class="sage-controls">
-            <input id="sage-question" type="text" placeholder="Optional: tell Sage what's confusing you…" />
-            <button id="sage-hint-btn" class="btn btn-sage">Get a hint <small id="sage-cost"></small></button>
-          </div>
-        </div>
-      </section>
-    </main>
-
-    <!-- ======== LEADERBOARD ======== -->
-    <main id="panel-board" class="panel hidden">
-      <div class="board-wrap">
-        <h1>🏆 Leaderboard</h1>
+  <!-- ─────── BOARD ─────── -->
+  <main id="panel-board" class="panel hidden">
+    <div class="board-wrap">
+      <span class="eyebrow">Everyone's on the same problem today</span>
+      <h1>The Board</h1>
+      <div class="board-stats" id="board-stats"></div>
+      <div class="card card-flush">
         <table class="board">
           <thead>
-            <tr><th>#</th><th>User</th><th>Points</th><th>Streak</th><th>Solved</th><th>Today</th></tr>
+            <tr><th>#</th><th>Who</th><th>Points</th><th>Streak</th><th>Lang</th><th>Progress</th><th>Today</th></tr>
           </thead>
           <tbody id="board-body"></tbody>
         </table>
       </div>
-    </main>
-  </div>
-
-  <!-- One-time Sage opt-in prompt -->
-  <div id="sage-optin" class="sage-optin hidden">
-    <div class="sage-optin-card">
-      <div class="sage-optin-orb">🔮</div>
-      <h2>Meet Sage</h2>
-      <p>Sage is an AI coach that hangs out in your code window. When you look stuck — failed runs, long pauses — it offers a nudge. Hints trim a bit off the day's points, so use them wisely.</p>
-      <div class="sage-optin-actions">
-        <button id="sage-optin-yes" class="btn btn-sage">Enable Sage</button>
-        <button id="sage-optin-no" class="btn btn-ghost">Solo mode</button>
-      </div>
     </div>
+  </main>
+</div>
+
+<!-- ─────── SAGE ─────── -->
+<button id="sage-orb" class="sage-orb hidden" title="Ask Sage (⌘/Ctrl + K)">
+  <span class="sage-orb-face">🔮</span>
+  <span id="sage-badge" class="sage-badge hidden"></span>
+</button>
+<div id="sage-bubble" class="sage-bubble hidden"></div>
+
+<aside id="sage-panel" class="sage-panel hidden">
+  <header class="sage-head">
+    <span class="sage-name">🔮 Sage</span>
+    <span id="sage-status" class="sage-status"></span>
+    <button id="sage-close" class="icon-btn">✕</button>
+  </header>
+  <div id="sage-messages" class="sage-messages"></div>
+  <div class="sage-foot">
+    <input id="sage-question" type="text" placeholder="Tell Sage what's confusing you (optional)…" />
+    <button id="sage-hint-btn" class="btn btn-sage btn-block">Give me a hint <span id="sage-cost" class="cost"></span></button>
   </div>
+</aside>
 
-  <div id="toast" class="toast hidden"></div>
+<!-- ─────── MODALS ─────── -->
+<div id="graduation" class="modal hidden">
+  <div class="modal-card grad-card">
+    <div class="grad-burst">🎓</div>
+    <span class="eyebrow">Training complete</span>
+    <h2>You've earned the daily.</h2>
+    <p>Ten rungs done. You can now loop, branch, accumulate, write functions and reach for a hash map — which is genuinely most of what algorithm problems are made of.</p>
+    <p class="grad-sub">From here it's one real problem a day, the same one everyone else gets. Protect the streak.</p>
+    <button id="grad-go" class="btn btn-primary btn-block">Open today's challenge</button>
+  </div>
+</div>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
-  <script src="app.js"></script>
+<div id="share-modal" class="modal hidden">
+  <div class="modal-card">
+    <span class="eyebrow">Solved</span>
+    <h2 id="share-title">Nice one.</h2>
+    <pre id="share-text" class="share-text"></pre>
+    <button id="share-copy" class="btn btn-primary btn-block">Copy result</button>
+    <button id="share-close" class="btn btn-ghost btn-block">Close</button>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<!-- Vendored locally: the editor is core, so it must not depend on a CDN. -->
+<script src="vendor/codemirror.js"></script>
+<script src="vendor/mode/javascript.js"></script>
+<script src="vendor/mode/python.js"></script>
+<script src="vendor/mode/clike.js"></script>
+<script src="vendor/addon/closebrackets.js"></script>
+<script src="vendor/addon/matchbrackets.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

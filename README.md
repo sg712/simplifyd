@@ -1,39 +1,102 @@
-# ⚡ DailyCode
+# ⬡ Ramp
 
-A LeetCode-style site with a twist: **you don't browse a catalog of problems — you get exactly one problem per day.** Solve it, earn points, keep your streak alive, and climb the leaderboard. And when you're stuck, **Sage** — an AI coach — shows up right inside the code window (if you enable it).
+**Learn to code by writing code — then keep a daily streak.**
 
-## How it works
+Ramp isn't a problem catalog. It's two phases:
 
-- **One problem a day.** Everyone gets the same problem, rotated daily from the pool in `data/problems.json`. A countdown shows when the next one drops.
-- **Points & streaks.** Easy = 100, Medium = 200, Hard = 300 base points. Solving on consecutive days builds a streak (+10 pts/day bonus, capped at +50).
-- **Sage, the AI coach.** Opt-in per account. Sage watches for stuck signals — repeated failed runs, long idle pauses — and pops up in the editor offering help. Hints escalate through 3 levels (intuition → technique → walkthrough) and each one trims 15% off the day's points (floor of 40%), so there's a real trade-off.
-- **Leaderboard.** Ranked by total points, with streaks and daily solve status.
+### 1. The training ladder
+Sage, an AI coach, hands you **one small drill at a time**. Print an array. Filter it to evens. Add them up. Write a function. Count letters with a hash map. You write a tiny program, hit **Run & check**, and Ramp compares what your program actually printed against what it should print — with a side-by-side diff pointing at the first line that differs.
 
-Sage uses the **Claude API** (`claude-opus-5`) when credentials are available, sending your actual code and real test results so hints are specific to *your* bug. Without an API key, it falls back to a hand-written 3-tier hint ladder per problem — the site works fully offline.
+Clear a rung, Sage reacts to *how you solved it* and writes the next one. Ten rungs and you graduate.
+
+### 2. The daily challenge
+One real algorithm problem a day — the same one for everybody, LeetCode-style, with hidden tests. Solve it, earn points scaled by difficulty and your streak, and copy a Wordle-style share card:
+
+```
+Ramp #20661 · Medium
+🟩🟥 🔮1 · 2 tries · +180
+🔥 4 day streak
+```
+
+Everything is ranked on one board: points, streak, language, and how far up the ladder you are.
+
+---
 
 ## Running it
 
 ```bash
 npm install
-export ANTHROPIC_API_KEY=sk-ant-...   # optional — enables live AI hints
-npm start                              # http://localhost:3000
+npm start          # → http://localhost:3000
 ```
 
-Requires Node.js ≥ 20. No database needed — state persists to `data/db.json`.
+Node.js 20+. No database — state lands in `data/db.json`.
 
-## Architecture
+**To turn Sage on** (AI-authored drills, hints that read your actual code and error):
 
-| Piece | What it does |
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+npm start
+```
+
+Without a key everything still works — Sage falls back to a hand-written 10-drill curriculum and static hint ladders. The UI tells you which mode you're in rather than pretending.
+
+## Languages
+
+JavaScript, Python 3, Java, and C++ — switchable at any time from the header. Starter code and test harnesses are generated per language from each problem's type signature, so switching mid-problem regenerates the scaffold correctly.
+
+Ramp probes for each toolchain at boot and greys out what isn't installed:
+
+```
+Languages ready:  JavaScript, Python 3, Java, C++
+```
+
+On a stock Mac you'll get JavaScript and Python out of the box; Java needs a JDK and C++ needs Xcode Command Line Tools.
+
+## How grading works
+
+| Phase | What's checked |
 |---|---|
-| `server/index.js` | Express app: auth (scrypt + session cookies), daily problem selection, run/submit, leaderboard, Sage endpoints |
-| `server/judge.js` | Executes user JS in a separate node process with a 4s timeout and memory cap; deep-equal output comparison |
-| `server/ai.js` | Claude API integration for Sage — level-calibrated Socratic hints with the user's code and live run results as context |
-| `server/store.js` | Debounced JSON-file persistence |
-| `data/problems.json` | Problem pool: statement, examples, hidden tests, starter code, 3-tier static hints |
-| `public/` | Vanilla JS SPA: CodeMirror editor, Sage orb/panel, leaderboard |
+| **Drills** | Your program's **stdout**, compared to the output of a reference solution that Ramp actually executes. Nothing is trusted from a written-down answer — including drills the AI wrote, which are verified before you ever see them. |
+| **Daily** | A generated harness calls your function against visible examples plus hidden tests, comparing typed return values. Hidden failures report pass/fail only, never their inputs. |
 
-## Notes & limitations
+Both run in a scratch directory in a child process with a timeout. Compiled languages get a compile pass first, with the compiler error cleaned up before it reaches you. Results stream out one line at a time, so a segfault or timeout still shows you the tests that passed before it.
 
-- **The judge is process isolation, not a security sandbox.** User code runs in a separate node process with a timeout and memory limit, which is fine for a demo or a trusted group. For hostile traffic, run the judge inside a container/jail (gVisor, Firecracker, isolated-vm) with no network and a read-only filesystem.
-- Hidden test failures only reveal pass/fail (plus crash messages), never inputs — Sage is also instructed never to leak them.
-- The daily problem rotates by UTC day (`floor(now / 86400s) % poolSize`). Add problems to `data/problems.json` to grow the rotation.
+## Sage watches you type
+
+Sage isn't a hint button you go looking for. It reads your editor continuously and speaks up on its own when it thinks you're stuck.
+
+The client tracks your keystrokes locally and looks for stuck-patterns rather than pestering the model on every change:
+
+| Pattern | What it means |
+|---|---|
+| `repeated_failures` | Two failed runs with >93% identical code — you're re-submitting the same thing hoping for a different result |
+| `same_error` | The identical error message twice running |
+| `idle_untouched` | Over a minute on the starter code without writing anything — you don't know where to begin |
+| `idle_mid_edit` | 45 seconds of stillness partway through an attempt |
+| `churn` | 25+ edits in a minute with no net change — typing and deleting the same line |
+| `long_task` | Several minutes in, still failing |
+
+Only when one of these trips does the client send your code to the server, where Sage looks at it and makes its own call about whether interrupting is actually useful. Most of the time the right answer is silence, and it's prompted to prefer that — a wrong interruption is worse than none. When it does speak, it points at the specific thing it sees ("your total resets each loop"), never generic encouragement, and never the answer.
+
+**Proactive remarks are free.** That's Sage noticing, not you spending something. Asking for a full hint is the part that costs: three escalating levels — intuition, technique, concrete walkthrough — each trimming 15% off that item's points. `⌘/Ctrl+K` opens the panel; the orb is clickable any time.
+
+Rate-limited to one remark per 25 seconds, with recent remarks fed back into the prompt so it doesn't repeat itself. Without an API key the watcher still runs, but it can only act on the unambiguous signals and says so plainly rather than faking insight.
+
+## Layout
+
+| Path | Role |
+|---|---|
+| `server/index.js` | Routes, auth, phase gating, points and streaks |
+| `server/languages.js` | Per-language starter + harness codegen, toolchain probing |
+| `server/judge.js` | Sandboxed execution: `runTests` (daily) and `runProgram` (drills) |
+| `server/drills.js` | Drill sourcing, reference verification, output diffing |
+| `server/ai.js` | Claude API: drill authoring, live stuck-detection, hints, post-solve review — all structured output |
+| `data/drills.json` | The offline 10-rung curriculum, all four languages |
+| `data/problems.json` | Daily problems: statement, signature, examples, hidden tests, hints |
+| `public/` | Single-page client; CodeMirror vendored into `public/vendor` |
+
+## Notes
+
+- **The judge is process isolation, not a hardened sandbox.** Fine for yourself or a trusted group. For public traffic, run it in a locked-down container with no network and a read-only filesystem.
+- The daily problem rotates by UTC day. Add entries to `data/problems.json` to extend the rotation — supply a `signature` and the starters for all four languages are generated for you.
+- CodeMirror is vendored rather than pulled from a CDN so the editor works offline; if it somehow fails to load, the editor degrades to a plain textarea instead of a blank pane.

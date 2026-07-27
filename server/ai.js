@@ -1,6 +1,9 @@
-// Sage — the AI coach that pops into the code window when you're stuck.
-// Uses the Claude API when credentials are available; the caller falls back to
-// the problem's canned hint ladder otherwise.
+// Sage — the AI coach. Two jobs:
+//   1. Author the next training drill for a learner, tuned to what they've done.
+//   2. Give escalating, Socratic hints on drills and on the daily challenge.
+//
+// Every entry point degrades gracefully: callers fall back to the hand-written
+// curriculum and hint ladders when no API credentials are present.
 import Anthropic from '@anthropic-ai/sdk';
 
 const MODEL = 'claude-opus-5';
@@ -9,52 +12,268 @@ let client = null;
 export function aiAvailable() {
   return Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
 }
-
 function getClient() {
   client ??= new Anthropic();
   return client;
 }
 
-const SYSTEM_PROMPT = `You are Sage, the in-editor coach on DailyCode, a daily coding-challenge site. A user is solving today's problem and has signaled (or been detected as) stuck. Your job is to get them unstuck while preserving the joy of solving it themselves.
-
-Rules:
-- Be warm, brief, and concrete. 2-5 sentences, at most one short code fragment (never a full solution).
-- Calibrate to the hint level you are given:
-  - Level 1: nudge intuition. Point at the shape of the approach or a question to ask themselves. No data structures or algorithm names yet if avoidable.
-  - Level 2: name the technique or data structure and connect it to their current code.
-  - Level 3: walk through the algorithm concretely, referencing their code's specific gap. Still stop short of pasting a complete working solution.
-- If their code has a bug (see the run results), prefer pointing at the actual bug over generic advice.
-- If their code is empty or just the starter, help them get started instead of critiquing.
-- Never mock the user. Never reveal hidden test cases beyond what the run results already show.
-- Respond in plain prose (light markdown ok: backticks for code, no headers).`;
-
-export async function getAiHint({ problem, code, hintLevel, runSummary, userMessage }) {
-  const parts = [
-    `## Problem: ${problem.title} (${problem.difficulty})`,
-    problem.statement,
-    `Expected function: \`${problem.functionName}\``,
-    `Visible examples: ${JSON.stringify(problem.examples)}`,
-    `## Hint level requested: ${hintLevel} of 3`,
-    `## User's current code:\n\`\`\`js\n${(code || '').slice(0, 6000)}\n\`\`\``,
-  ];
-  if (runSummary) parts.push(`## Latest run results:\n${runSummary.slice(0, 2000)}`);
-  if (userMessage) parts.push(`## The user says:\n${userMessage.slice(0, 1000)}`);
-
-  const response = await getClient().messages.create({
-    model: MODEL,
-    max_tokens: 1024,
-    system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
-    messages: [{ role: 'user', content: parts.join('\n\n') }],
-  });
-
-  if (response.stop_reason === 'refusal') {
-    throw new Error('assistant-refused');
-  }
+function textOf(response) {
+  if (response.stop_reason === 'refusal') throw new Error('assistant-refused');
   const text = response.content
-    .filter((block) => block.type === 'text')
-    .map((block) => block.text)
+    .filter((b) => b.type === 'text')
+    .map((b) => b.text)
     .join('\n')
     .trim();
   if (!text) throw new Error('assistant-empty');
   return text;
+}
+
+const LANG_LABEL = {
+  javascript: 'JavaScript (run with node)',
+  python: 'Python 3',
+  java: 'Java (single file, must contain `public class Main` with a `main` method)',
+  cpp: 'C++17 (single file with `int main()`)',
+};
+
+// ---------- 1. drill authoring ----------
+
+const DRILL_SCHEMA = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', description: 'Short, punchy drill name (2-4 words)' },
+    concept: { type: 'string', description: 'The one concept being taught, e.g. "Nested loops"' },
+    instructions: {
+      type: 'string',
+      description:
+        'Markdown. State the task and show the exact expected output in a fenced code block. Be unambiguous about formatting.',
+    },
+    why: {
+      type: 'string',
+      description: 'One or two sentences on why this concept matters for real coding. Motivating, not preachy.',
+    },
+    starterCode: {
+      type: 'string',
+      description:
+        'A complete, runnable program with the interesting part left as a comment for the learner. Must compile/run as-is even before they edit it.',
+    },
+    referenceSolution: {
+      type: 'string',
+      description:
+        'A complete, correct program that produces the expected output. This is run to derive the expected output — it must be exactly right.',
+    },
+    hints: {
+      type: 'array',
+      items: { type: 'string' },
+      minItems: 3,
+      maxItems: 3,
+      description:
+        'Three escalating hints: (1) nudge the intuition, (2) name the technique, (3) near-explicit walkthrough that still leaves the typing to them.',
+    },
+    feedbackOnPrevious: {
+      type: 'string',
+      description:
+        "One warm sentence reacting to the learner's previous submission. Empty string if there was no previous drill.",
+    },
+  },
+  required: ['title', 'concept', 'instructions', 'why', 'starterCode', 'referenceSolution', 'hints', 'feedbackOnPrevious'],
+  additionalProperties: false,
+};
+
+const DRILL_SYSTEM = `You are Sage, the coach on Ramp — a site that teaches programming through very short, hands-on drills, then graduates learners to daily algorithm challenges.
+
+You author ONE drill at a time. A drill is a tiny program the learner writes in a few minutes, and it is graded by comparing exactly what the program PRINTS to the expected output.
+
+Hard requirements:
+- The drill must be checkable purely from stdout. Never ask for a value to be "returned" without also printing it.
+- \`starterCode\` must be a complete program that runs successfully as-is (before the learner edits it), with the interesting logic replaced by a comment. Provide any input data (arrays, strings) pre-declared in the starter so the learner only writes the logic.
+- \`referenceSolution\` must be a complete, correct program. It will be executed and its output becomes the expected output. Getting this wrong breaks the drill — be meticulous.
+- \`instructions\` must show the exact expected output in a fenced code block so there is zero formatting ambiguity.
+- Keep it to ONE new concept. Small. A learner should finish in 2-5 minutes.
+- Teach in a sensible order and build on what they already did. Do not repeat a concept they've already passed.
+- Never include the answer in the instructions or starter code.
+
+Tone: warm, direct, a little playful. You are a good tutor, not a textbook.`;
+
+export async function generateDrill({ language, history, recentCode, targetCount }) {
+  const done = history.map((h, i) => `${i + 1}. ${h.title} — ${h.concept}`).join('\n') || '(none yet — this is their very first drill)';
+  const prompt = [
+    `Language: ${LANG_LABEL[language] || language}`,
+    `Drills completed so far (${history.length} of ~${targetCount} before they unlock the daily challenge):\n${done}`,
+    recentCode
+      ? `Their code on the previous drill:\n\`\`\`\n${recentCode.slice(0, 2000)}\n\`\`\`\nReact to it briefly in feedbackOnPrevious — praise something specific or point out a cleaner idiom.`
+      : 'There is no previous submission; set feedbackOnPrevious to an empty string.',
+    history.length >= targetCount - 1
+      ? 'This is their FINAL drill before the daily challenge. Make it a satisfying capstone that combines a couple of earlier concepts — ideally hash maps or a lookup, since the daily problems lean on those.'
+      : 'Pick the natural next concept in the progression.',
+    'Author the next drill.',
+  ].join('\n\n');
+
+  const response = await getClient().messages.create({
+    model: MODEL,
+    max_tokens: 4096,
+    system: [{ type: 'text', text: DRILL_SYSTEM, cache_control: { type: 'ephemeral' } }],
+    output_config: { format: { type: 'json_schema', schema: DRILL_SCHEMA } },
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  return JSON.parse(textOf(response));
+}
+
+// ---------- 2. hints ----------
+
+const HINT_SYSTEM = `You are Sage, the in-editor coach on Ramp. A learner is stuck and asked for help. Get them unstuck without stealing the moment of solving it.
+
+Rules:
+- Warm, brief, concrete. 2-5 sentences. At most one short code fragment — never a complete solution.
+- Calibrate to the hint level you're given:
+  - Level 1: nudge the intuition. Ask the question they should be asking themselves.
+  - Level 2: name the technique or data structure and tie it to their actual code.
+  - Level 3: walk through the approach concretely against their code's specific gap — still stop short of a full working answer.
+- If their code has a real bug, point at the actual bug rather than giving generic advice.
+- If their code is empty or untouched, help them take the first step instead of critiquing.
+- Never mock the learner. Never reveal hidden test inputs.
+- Plain prose; light markdown (backticks for code) is fine. No headers.`;
+
+export async function getDrillHint({ drill, code, language, hintLevel, output, expected }) {
+  const parts = [
+    `## Drill: ${drill.title} (${drill.concept})`,
+    drill.instructions,
+    `Language: ${LANG_LABEL[language] || language}`,
+    `## Hint level requested: ${hintLevel} of 3`,
+    `## Their code:\n\`\`\`\n${(code || '').slice(0, 4000)}\n\`\`\``,
+  ];
+  if (expected !== undefined) parts.push(`## Expected output:\n${String(expected).slice(0, 1000)}`);
+  if (output !== undefined && output !== null) {
+    parts.push(`## What their code actually printed:\n${String(output).slice(0, 1000) || '(nothing)'}`);
+  }
+
+  const response = await getClient().messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    system: [{ type: 'text', text: HINT_SYSTEM, cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: parts.join('\n\n') }],
+  });
+  return textOf(response);
+}
+
+export async function getChallengeHint({ problem, code, language, hintLevel, runSummary, userMessage }) {
+  const parts = [
+    `## Daily challenge: ${problem.title} (${problem.difficulty})`,
+    problem.statement,
+    `Language: ${LANG_LABEL[language] || language}`,
+    `Required function: \`${problem.functionName}\``,
+    `Visible examples: ${JSON.stringify(problem.examples)}`,
+    `## Hint level requested: ${hintLevel} of 3`,
+    `## Their code:\n\`\`\`\n${(code || '').slice(0, 6000)}\n\`\`\``,
+  ];
+  if (runSummary) parts.push(`## Latest run results:\n${runSummary.slice(0, 2000)}`);
+  if (userMessage) parts.push(`## They say:\n${userMessage.slice(0, 1000)}`);
+
+  const response = await getClient().messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    system: [{ type: 'text', text: HINT_SYSTEM, cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: parts.join('\n\n') }],
+  });
+  return textOf(response);
+}
+
+// ---------- 3. live monitoring ----------
+// Called while the learner is typing, when client-side heuristics suspect
+// they're stuck. Sage decides whether to actually speak up — most of the time
+// the right answer is to stay quiet.
+
+const OBSERVE_SCHEMA = {
+  type: 'object',
+  properties: {
+    stuck: {
+      type: 'boolean',
+      description: 'True only if they genuinely appear blocked AND a short remark would help right now.',
+    },
+    confidence: { type: 'number', description: '0 to 1.' },
+    read: {
+      type: 'string',
+      description:
+        'Under 12 words, what you think is happening. e.g. "printing inside the loop instead of after". Empty if not stuck.',
+    },
+    message: {
+      type: 'string',
+      description:
+        'What Sage says, unprompted, in the corner of the screen. Max 20 words, one sentence, conversational. Point at the specific thing you noticed in THEIR code — never generic encouragement. Do not give the answer. Empty string if not stuck.',
+    },
+  },
+  required: ['stuck', 'confidence', 'read', 'message'],
+  additionalProperties: false,
+};
+
+const OBSERVE_SYSTEM = `You are Sage, watching a learner's code editor in real time on Ramp, a learn-to-code site. You see their code as they type, plus a signal describing why the client thinks they might be stuck.
+
+Your job is to decide whether to interrupt. You are a presence in the corner of their screen, not a chat partner.
+
+Stay quiet (stuck: false) when:
+- The code is progressing sensibly, even if unfinished.
+- They just started, or the pause is short.
+- The mistake is trivial and they'll obviously catch it themselves.
+- You already said something similar recently (you'll be shown your recent remarks).
+
+Speak up (stuck: true) when you can point at something SPECIFIC and real:
+- A concrete bug you can see: an off-by-one, a print inside the loop that belongs after it, a variable initialized in the wrong place, a comparison that's assigning.
+- They're clearly flailing: repeated near-identical attempts, or the same error again and again.
+- They've written nothing meaningful for a long time — they don't know where to start.
+
+Rules for the message:
+- One sentence, max 20 words, lowercase-casual is fine. It appears as a small speech bubble.
+- Reference what you actually see in their code. "your total resets each loop" beats "check your logic".
+- NEVER give the solution. Nudge toward the realization.
+- No greetings, no "I noticed that", no exclamation marks stacked up. Just the observation.
+- If you're not confident, stay quiet. A wrong interruption is worse than silence.`;
+
+export async function observeCode({ context, title, instructions, code, starterCode, language, signal, expected, lastOutput, recentRemarks }) {
+  const parts = [
+    `## What they're working on: ${context === 'daily' ? 'daily challenge' : 'training drill'} — ${title}`,
+    instructions?.slice(0, 900) || '',
+    expected ? `Expected output:\n${String(expected).slice(0, 400)}` : '',
+    `Language: ${LANG_LABEL[language] || language}`,
+    `## Why I'm being asked to look: ${signal.label}`,
+    signal.detail ? `Details: ${signal.detail}` : '',
+    `## Their code right now:\n\`\`\`\n${(code || '').slice(0, 3500)}\n\`\`\``,
+    starterCode && code === starterCode ? '(This is still the untouched starter code.)' : '',
+    lastOutput ? `## Last thing their code produced:\n${String(lastOutput).slice(0, 600)}` : '',
+    recentRemarks?.length
+      ? `## Things you already said to them recently (do NOT repeat these):\n${recentRemarks.map((r) => `- ${r}`).join('\n')}`
+      : '',
+    'Decide: speak up, or stay quiet?',
+  ].filter(Boolean);
+
+  const response = await getClient().messages.create({
+    model: MODEL,
+    max_tokens: 800,
+    output_config: { format: { type: 'json_schema', schema: OBSERVE_SCHEMA }, effort: 'low' },
+    system: [{ type: 'text', text: OBSERVE_SYSTEM, cache_control: { type: 'ephemeral' } }],
+    messages: [{ role: 'user', content: parts.join('\n\n') }],
+  });
+
+  return JSON.parse(textOf(response));
+}
+
+// ---------- 4. review note after a passed drill ----------
+
+export async function getDrillReview({ drill, code, language }) {
+  const response = await getClient().messages.create({
+    model: MODEL,
+    max_tokens: 512,
+    system: [
+      {
+        type: 'text',
+        text: 'You are Sage, a warm coding tutor. The learner just passed a drill. In 1-2 sentences, say something specific and genuine about HOW they solved it — praise a good choice, or mention a cleaner idiom worth knowing. No preamble, no headers, no bullet lists. Never be generic ("Great job!").',
+      },
+    ],
+    messages: [
+      {
+        role: 'user',
+        content: `Drill: ${drill.title} (${drill.concept})\nLanguage: ${LANG_LABEL[language] || language}\n\nTheir passing solution:\n\`\`\`\n${(code || '').slice(0, 2000)}\n\`\`\``,
+      },
+    ],
+  });
+  return textOf(response);
 }
